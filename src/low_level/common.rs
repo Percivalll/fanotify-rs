@@ -12,6 +12,8 @@ pub struct fanotify_event_metadata {
     pub fd: __s32,
     pub pid: __s32,
 }
+#[derive(Debug)]
+#[repr(C)]
 pub struct fanotify_response {
     pub fd: __s32,
     pub response: __u32,
