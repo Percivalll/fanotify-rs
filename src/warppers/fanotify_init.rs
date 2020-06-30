@@ -1,3 +1,5 @@
+use libc;
+use std::io;
 ///Set the close-on-exec flag (FD_CLOEXEC) on the new file descriptor.<br/>
 ///See the description of the O_CLOEXEC flag in open(2).
 pub const FAN_CLOEXEC: i32 = 0x0000_0001;
@@ -17,26 +19,20 @@ pub const FAN_CLASS_CONTENT: i32 = 0x0000_0004;
 ///It is intended for event listeners that need to access files before they contain their final data.<br/>
 ///This notification class might be used by hierarchical storage managers, for example.
 pub const FAN_CLASS_PRE_CONTENT: i32 = 0x0000_0008;
-
+///Remove the limit of 16384 events for the event queue.  <br/>
+///Use of this flag requires the CAP_SYS_ADMIN capability.
 pub const FAN_UNLIMITED_QUEUE: i32 = 0x0000_0010;
+///Remove the limit of 8192 marks.  Use of this flag requires the CAP_SYS_ADMIN capability.
 pub const FAN_UNLIMITED_MARKS: i32 = 0x0000_0020;
-
-pub const FAN_MARK_ADD: i32 = 0x0000_0001;
-pub const FAN_MARK_REMOVE: i32 = 0x0000_0002;
-pub const FAN_MARK_DONT_FOLLOW: i32 = 0x0000_0004;
-pub const FAN_MARK_ONLYDIR: i32 = 0x0000_0008;
-pub const FAN_MARK_INODE: i32 = 0x0000_0000;
-pub const FAN_MARK_MOUNT: i32 = 0x0000_0010;
-
-pub const FAN_MARK_FILESYSTEM: i32 = 0x0000_0100;
-pub const FAN_MARK_IGNORED_MASK: i32 = 0x0000_0020;
-pub const FAN_MARK_IGNORED_SURV_MODIFY: i32 = 0x0000_0040;
-pub const FAN_MARK_FLUSH: i32 = 0x0000_0080;
-
-pub const FANOTIFY_METADATA_VERSION: u8 = 3;
-
-pub const FAN_ALLOW: u32 = 0x01;
-pub const FAN_DENY: u32 = 0x02;
-
-pub const FAN_NOFD: i32 = -1;
-pub const FAN_Q_OVERFLOW: u64 = 0x0000_4000;
+pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32,io::Error> {
+    unsafe { 
+        match libc::fanotify_init(flags, event_f_flags){
+            -1=>{
+                return Err(io::Error::last_os_error());
+            }
+            fd=>{
+                return Ok(fd);
+            }
+        };
+    }
+}
