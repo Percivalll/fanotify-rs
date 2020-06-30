@@ -22,7 +22,8 @@ pub const FAN_CLASS_PRE_CONTENT: i32 = 0x0000_0008;
 ///Remove the limit of 16384 events for the event queue.  <br/>
 ///Use of this flag requires the CAP_SYS_ADMIN capability.
 pub const FAN_UNLIMITED_QUEUE: i32 = 0x0000_0010;
-///Remove the limit of 8192 marks.  Use of this flag requires the CAP_SYS_ADMIN capability.
+///Remove the limit of 8192 marks.  <br/>
+///Use of this flag requires the CAP_SYS_ADMIN capability.
 pub const FAN_UNLIMITED_MARKS: i32 = 0x0000_0020;
 pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32,io::Error> {
     unsafe { 

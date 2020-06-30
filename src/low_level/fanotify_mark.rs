@@ -30,9 +30,9 @@ pub const FAN_ONDIR: u64 = 0x4000_0000;
 pub const FAN_EVENT_ON_CHILD: u64 = 0x0800_0000;
 ///A file is closed (FAN_CLOSE_WRITE|FAN_CLOSE_NOWRITE). <br/>
 pub const FAN_CLOSE: u64 = FAN_CLOSE_WRITE | FAN_CLOSE_NOWRITE;
-// The events in mask will be added to the mark mask (or to the ignore mask).  mask must be nonempty or the error EINVAL will occur.
+///The events in mask will be added to the mark mask (or to the ignore mask).  mask must be nonempty or the error EINVAL will occur.
 pub const FAN_MARK_ADD: i32 = 0x0000_0001;
-// The events in argument mask will be removed from the mark mask (or from the ignore mask).  mask must be nonempty or the error EINVAL will occur.
+///The events in argument mask will be removed from the mark mask (or from the ignore mask).  mask must be nonempty or the error EINVAL will occur.
 pub const FAN_MARK_REMOVE: i32 = 0x0000_0002;
 ///If pathname is a symbolic link, mark the link itself, rather than the file to which it refers. <br/>
 ///(By default,fanotify_mark() dereferences pathname if it is a symbolic link.)
@@ -45,6 +45,8 @@ pub const FAN_MARK_FLUSH: i32 = 0x0000_0080;
 pub const FAN_MARK_DONT_FOLLOW: i32 = 0x0000_0004;
 ///If the filesystem object to be marked is not a directory, the error ENOTDIR shall be raised.
 pub const FAN_MARK_ONLYDIR: i32 = 0x0000_0008;
+///Mark the inode specified by pathname.<br/>
+///It is default way to mark.
 pub const FAN_MARK_INODE: i32 = 0x0000_0000;
 ///Mark the mount point specified by pathname.  If pathname is not itself a mount point, the mount point containing pathname will be marked.  <br/>
 ///All directories, subdirectories, and the contained files of the mount point will be monitored.  <br/>
