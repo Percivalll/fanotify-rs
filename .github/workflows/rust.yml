@@ -19,4 +19,4 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run tests
-      run: sudo env $PATH=$PATH:/usr/share/rust/.cargo/bin/ && sudo -E cargo test --verbose
+      run: sudo -E env PATH=$PATH:$(which cargo)  cargo test --verbose
