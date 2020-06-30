@@ -1,5 +1,5 @@
 [package]
-name = "fanotify"
+name = "fanotify-rs"
 version = "0.1.0"
 authors = ["zhanglei <mrzhang.lei@outlook.com>"]
 edition = "2018"
