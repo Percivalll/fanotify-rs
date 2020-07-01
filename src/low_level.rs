@@ -2,18 +2,46 @@ use lazy_static::lazy_static;
 use libc;
 use libc::{__s32, __u16, __u32, __u64, __u8};
 use std::ffi;
-use std::io;
+use std::io::{Error,Read};
+use std::os::unix::io::FromRawFd;
 use std::mem;
-#[derive(Debug)]
+use std::slice;
+use std::fs::File;
+#[derive(Debug,Clone,Copy)]
 #[repr(C)]
-/// The fanotify generates event struct.
 pub struct fanotify_event_metadata {
+/// This is the length of the data for the current event and the
+/// offset to the next event in the buffer.  Without
+/// FAN_REPORT_FID, the value of event_len is always
+/// FAN_EVENT_METADATA_LEN.  With FAN_REPORT_FID, event_len also
+/// includes the variable length file identifier.
     pub event_len: __u32,
+/// This field holds a version number for the structure.  It must
+/// be compared to FANOTIFY_METADATA_VERSION to verify that the
+/// structures returned at run time match the structures defined
+/// at compile time.  In case of a mismatch, the application
+/// should abandon trying to use the fanotify file descriptor.
     pub vers: __u8,
+/// This field is not used.
     pub reserved: __u8,
+/// This is the length of the structure.  The field was introduced
+/// to facilitate the implementation of optional headers per event
+/// type.  No such optional headers exist in the current implemen‐
+/// tation.
     pub metadata_len: __u16,
+/// This is a bit mask describing the event (see below).
     pub mask: __u64,
+/// This is an open file descriptor for the object being accessed,or FAN_NOFD if a queue overflow occurred.  
+/// If the fanotify file descriptor has been initialized using FAN_REPORT_FID,
+/// applications should expect this value to be set to FAN_NOFDfor each event that is received.  The file descriptor can be
+/// used to access the contents of the monitored file or directory.  The reading application is responsible for closing this file descriptor.
+/// When calling fanotify_init(2), the caller may specify (via the event_f_flags argument) various file status flags that are to
+/// be set on the open file description that corresponds to this file descriptor.  In addition, the (kernel-internal) FMODE_NONOTIFY file status flag is set on the open file description.  
+/// This flag suppresses fanotify event generation. Hence, when the receiver of the fanotify event accesses the notified file or directory using this file descriptor, noadditional events will be created.
     pub fd: __s32,
+/// If flag FAN_REPORT_TID was set in fanotify_init(2), this is
+/// the TID of the thread that caused the event.  Otherwise, this
+/// the PID of the process that caused the event.
     pub pid: __s32,
 }
 #[derive(Debug)]
@@ -206,11 +234,11 @@ pub const AT_EMPTY_PATH: i32 = 0x1000;
 /// let fd = fanotify_init(FAN_CLASS_NOTIF, O_RDONLY).unwrap();
 /// assert!(fd > 0)
 /// ```
-pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32, io::Error> {
+pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32, Error> {
     unsafe {
         match libc::fanotify_init(flags, event_f_flags) {
             -1 => {
-                return Err(io::Error::last_os_error());
+                return Err(Error::last_os_error());
             }
             fd => {
                 return Ok(fd);
@@ -282,7 +310,7 @@ pub fn fanotify_mark(
     mask: u64,
     dirfd: i32,
     path: &'static str,
-) -> Result<(), io::Error> {
+) -> Result<(), Error> {
     unsafe {
         match libc::fanotify_mark(
             fanotify_fd,
@@ -295,8 +323,22 @@ pub fn fanotify_mark(
                 return Ok(());
             }
             _ => {
-                return Err(io::Error::last_os_error());
+                return Err(Error::last_os_error());
             }
         }
     }
+}
+pub fn fanotify_read(fanotify_fd: i32)->Vec<fanotify_event_metadata>{
+    let mut vec=Vec::new();
+    unsafe{
+        let buffer=libc::malloc(*FAN_EVENT_METADATA_LEN*128);
+        let sizeof=libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN*128);
+        let src = slice::from_raw_parts(buffer as *mut fanotify_event_metadata,sizeof as usize/ *FAN_EVENT_METADATA_LEN);
+        vec.extend_from_slice(src);
+        libc::free(buffer);
+    }
+    vec
+}
+pub fn close_fd(fd:i32){
+    unsafe {libc::close(fd);}
 }
