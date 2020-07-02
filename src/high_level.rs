@@ -1,15 +1,14 @@
 use crate::low_level::*;
 use std::fs::read_link;
-use std::io::{Error, Read};
-use std::process;
+use std::io::{Error};
 pub struct Fanotify {
     fd: i32,
 }
 #[derive(Debug)]
 pub struct Event {
-    path: String,
-    genre: String,
-    pid: u32,
+    pub path: String,
+    pub genre: String,
+    pub pid: u32,
 }
 pub enum FanotifyMode {
     PRECONTENT,
