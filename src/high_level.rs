@@ -92,7 +92,7 @@ impl Fanotify {
         }
         if *DELAY.lock().unwrap() <= 256 && result.len() < 128 {
             *DELAY.lock().unwrap() += 1;
-        } else {
+        } else if result.len() > 128 {
             *DELAY.lock().unwrap() -= 1;
         }
         result
