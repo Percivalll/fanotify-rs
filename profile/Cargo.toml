@@ -1,0 +1,12 @@
+[package]
+name = "profile"
+version = "0.1.0"
+authors = ["Zhanglei-cn <mrzhang.lei@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fanotify-rs = {path = "../"}
+[profile.release]
+debug = true
