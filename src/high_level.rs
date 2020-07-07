@@ -64,8 +64,7 @@ impl Fanotify {
         let mut result = Vec::new();
         let events = fanotify_read(self.fd);
         for i in events {
-            // println!("{}",i.fd);
-            let path = read_link(format!("/proc/self/fd/{}", i.fd)).unwrap();
+            let path = read_link(format!("/proc/self/fd/{}", i.fd)).unwrap_or_default();
             let path = path.to_str().unwrap();
             let mut genre = "";
             if i.mask & FAN_ACCESS != 0 {
