@@ -23,9 +23,6 @@ pub use crate::low_level::{
     FAN_ACCESS, FAN_ACCESS_PERM, FAN_CLOSE, FAN_CLOSE_NOWRITE, FAN_CLOSE_WRITE, FAN_EVENT_ON_CHILD,
     FAN_MODIFY, FAN_ONDIR, FAN_OPEN, FAN_OPEN_PERM,
 };
-lazy_static! {
-    static ref DELAY: Mutex<u32> = Mutex::new(0);
-}
 impl Fanotify {
     pub fn new_with_blocking(mode: FanotifyMode) -> Self {
         match mode {
@@ -59,8 +56,6 @@ impl Fanotify {
         Ok(())
     }
     pub fn read_event(&self) -> Vec<Event> {
-        let mut delay = *DELAY.lock().unwrap();
-        thread::sleep_ms(delay.clone());
         let mut result = Vec::new();
         let events = fanotify_read(self.fd);
         for i in events {
@@ -88,11 +83,6 @@ impl Fanotify {
                 pid: i.pid as u32,
             });
             close_fd(i.fd);
-        }
-        if *DELAY.lock().unwrap() <= 256 && result.len() < 128 {
-            *DELAY.lock().unwrap() += 1;
-        } else if result.len() > 128 {
-            *DELAY.lock().unwrap() -= 1;
         }
         result
     }
