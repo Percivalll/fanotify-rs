@@ -2,12 +2,9 @@ use lazy_static::lazy_static;
 use libc;
 use libc::{__s32, __u16, __u32, __u64, __u8};
 use std::ffi;
-use std::fs::File;
-use std::io::{Error, Read};
+use std::io::Error;
 use std::mem;
-use std::os::unix::io::FromRawFd;
 use std::slice;
-use std::thread;
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct fanotify_event_metadata {
