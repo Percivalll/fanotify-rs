@@ -1,6 +1,6 @@
 use crate::low_level::*;
 use lazy_static::lazy_static;
-use std::fs::read_link;
+use std::fs::{File, read_link};
 use std::io::Error;
 use std::sync::Mutex;
 use std::thread;

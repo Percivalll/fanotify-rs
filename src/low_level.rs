@@ -65,6 +65,8 @@ pub const FANOTIFY_METADATA_VERSION: u8 = 3;
 pub const FAN_ALLOW: u32 = 0x01;
 /// Deny the file operation.
 pub const FAN_DENY: u32 = 0x02;
+/// bit mask to create audit record for result
+pub const FAN_AUDIT: u32 = 0x10;
 /// Indicates a queue overflow.
 pub const FAN_NOFD: i32 = -1;
 /// The event queue exceeded the limit of 16384 entries.
@@ -105,6 +107,22 @@ pub const FAN_UNLIMITED_QUEUE: u32 = 0x0000_0010;
 /// Remove the limit of 8192 marks.  <br/>
 /// Use of this flag requires the CAP_SYS_ADMIN capability.
 pub const FAN_UNLIMITED_MARKS: u32 = 0x0000_0020;
+/// CONFIG_AUDIT_SYSCALL
+pub const FAN_ENABLE_AUDIT: u32 = 0x0000_0040;
+
+/// Flags to determine fanotify event format
+/// event->pid is thread id
+pub const FAN_REPORT_TID: u32 = 0x0000_0100;
+/// Flags to determine fanotify event format
+/// report unique file id
+pub const FAN_REPORT_FID: u32 = 0x0000_0200;
+/// Flags to determine fanotify event format
+/// report unique directory id
+pub const FAN_REPORT_DIR_FID: u32 = 0x0000_0400;
+/// Flags to determine fanotify event format
+/// report events with name
+pub const FAN_REPORT_NAME: u32 = 0x0000_0800;
+
 /// This value allows only read access.
 pub const O_RDONLY: u32 = 0;
 /// This value allows only write access.
@@ -122,18 +140,39 @@ pub const O_SYNC: u32 = 1052672;
 pub const FAN_ACCESS: u64 = 0x0000_0001;
 /// Create an event when a file is modified (write).
 pub const FAN_MODIFY: u64 = 0x0000_0002;
+/// Create an event when a metadata changed.
+pub const FAN_ATTRIB: u64 = 0x0000_0004;
 /// Create an event when a writable file is closed.
 pub const FAN_CLOSE_WRITE: u64 = 0x0000_0008;
 /// Create an event when a read-only file or directory is closed.
 pub const FAN_CLOSE_NOWRITE: u64 = 0x0000_0010;
 /// Create an event when a file or directory is opened.
 pub const FAN_OPEN: u64 = 0x0000_0020;
+/// Create an event when a file was moved from X
+pub const FAN_MOVED_FROM: u64 = 0x0000_0040;
+/// Create an event when a file was moved to Y
+pub const FAN_MOVED_TO: u64 = 0x0000_0080;
+/// Create an event when a file was moved
+pub const FAN_MOVE: u64 = self::FAN_MOVED_TO | self::FAN_MOVED_FROM;
+/// Create an event when a file created
+pub const FAN_CREATE: u64 = 0x0000_0100;
+/// Create an event when a file deleted
+pub const FAN_DELETE: u64 = 0x0000_0200;
+/// Create an event when a self was deleted
+pub const FAN_DELETE_SELF: u64 = 0x0000_0400;
+/// Create an event when self was moved
+pub const FAN_MOVE_SELF: u64 = 0x0000_0800;
+/// Create an event when file was opened for exec
+pub const FAN_OPEN_EXEC: u64 = 0x0000_1000;
 /// Create an event when a permission to open a file or directory is requested. <br/>
 /// An fanotify file descriptor created with FAN_CLASS_PRE_CONTENT or FAN_CLASS_CONTENT is required.
 pub const FAN_OPEN_PERM: u64 = 0x0001_0000;
 /// Create an event when a permission to read a file or directoryis requested. <br/>
 /// An fanotify file descriptor created with FAN_CLASS_PRE_CONTENT or FAN_CLASS_CONTENT is required.
 pub const FAN_ACCESS_PERM: u64 = 0x0002_0000;
+/// Create an event when a permission to open a file for exec is requested. <br/>
+/// An fanotify file descriptor created with FAN_CLASS_PRE_CONTENT or FAN_CLASS_CONTENT is required.
+pub const FAN_OPEN_EXEC_PERM: u64 = 0x0004_0000;
 /// Create events for directories—for example, when opendir(3),readdir(3) (but see BUGS), and closedir(3) are called. <br/>
 /// Without this flag, events are created only for files. <br/>
 /// In the context of directory entry events, such as FAN_CREATE,FAN_DELETE, FAN_MOVED_FROM, and FAN_MOVED_TO, specifying the flag FAN_ONDIR is required in order to create events when subdirectory entries are modified (i.e., mkdir(2)/ rmdir(2)).
