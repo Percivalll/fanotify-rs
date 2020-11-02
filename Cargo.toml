@@ -1,7 +1,7 @@
 [package]
 name = "fanotify-rs"
 version = "0.2.7"
-authors = ["zhanglei <mrzhang.lei@outlook.com>"]
+authors = ["zhanglei <mrzhang.lei@outlook.com>", "n01e0 <noleo@vanillabeans.mobi>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "The high-level/low-level implementation of Linux Fanotify."
