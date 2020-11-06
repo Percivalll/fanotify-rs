@@ -67,6 +67,10 @@ impl Fanotify {
         fanotify_mark(self.fd, FAN_MARK_ADD, mode, AT_FDCWD, path)?;
         Ok(())
     }
+    pub fn add_mountpoint<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
+        fanotify_mark(self.fd, FAN_MARK_ADD | FAN_MARK_MOUNT, mode, AT_FDCWD, path)?;
+        Ok(())
+    }
     pub fn remove_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_REMOVE, mode, AT_FDCWD, path)?;
         Ok(())
