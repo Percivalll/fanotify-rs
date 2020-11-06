@@ -1,4 +1,5 @@
 use crate::low_level::*;
+use crate::FanotifyPath;
 use std::fs::read_link;
 use std::io::Error;
 pub struct Fanotify {
@@ -24,30 +25,32 @@ impl Fanotify {
         match mode {
             FanotifyMode::PRECONTENT => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC|FAN_CLASS_PRE_CONTENT, O_CLOEXEC|O_RDONLY).unwrap(),
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_PRE_CONTENT, O_CLOEXEC | O_RDONLY)
+                        .unwrap(),
                 };
             }
             FanotifyMode::CONTENT => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC|FAN_CLASS_PRE_CONTENT, O_CLOEXEC|O_RDONLY).unwrap(),
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT, O_CLOEXEC | O_RDONLY)
+                        .unwrap(),
                 };
             }
             FanotifyMode::NOTIF => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC|FAN_CLASS_NOTIF, O_CLOEXEC|O_RDONLY).unwrap(),
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_NOTIF, O_CLOEXEC | O_RDONLY).unwrap(),
                 };
             }
         }
     }
-    pub fn add_path(&self, mode: u64, path: &'static str) -> Result<(), Error> {
+    pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_ADD, mode, AT_FDCWD, path)?;
         Ok(())
     }
-    pub fn remove_path(&self, mode: u64, path: &'static str) -> Result<(), Error> {
+    pub fn remove_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_REMOVE, mode, AT_FDCWD, path)?;
         Ok(())
     }
-    pub fn flush_path(&self, mode: u64, path: &'static str) -> Result<(), Error> {
+    pub fn flush_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_FLUSH, mode, AT_FDCWD, path)?;
         Ok(())
     }
