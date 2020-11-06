@@ -40,15 +40,15 @@ impl Fanotify {
             }
         }
     }
-    pub fn add_path<P: FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
+    pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_ADD, mode, AT_FDCWD, path)?;
         Ok(())
     }
-    pub fn remove_path<P: FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
+    pub fn remove_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_REMOVE, mode, AT_FDCWD, path)?;
         Ok(())
     }
-    pub fn flush_path<P: FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
+    pub fn flush_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_FLUSH, mode, AT_FDCWD, path)?;
         Ok(())
     }
