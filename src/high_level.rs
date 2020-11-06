@@ -46,28 +46,45 @@ impl Fanotify {
         match mode {
             FanotifyMode::PRECONTENT => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_PRE_CONTENT | FAN_NONBLOCK, O_CLOEXEC | O_RDONLY)
-                        .unwrap(),
+                    fd: fanotify_init(
+                        FAN_CLOEXEC | FAN_CLASS_PRE_CONTENT | FAN_NONBLOCK,
+                        O_CLOEXEC | O_RDONLY,
+                    )
+                    .unwrap(),
                 };
             }
             FanotifyMode::CONTENT => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK, O_CLOEXEC | O_RDONLY)
-                        .unwrap(),
+                    fd: fanotify_init(
+                        FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK,
+                        O_CLOEXEC | O_RDONLY,
+                    )
+                    .unwrap(),
                 };
             }
             FanotifyMode::NOTIF => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_NOTIF | FAN_NONBLOCK, O_CLOEXEC | O_RDONLY).unwrap(),
+                    fd: fanotify_init(
+                        FAN_CLOEXEC | FAN_CLASS_NOTIF | FAN_NONBLOCK,
+                        O_CLOEXEC | O_RDONLY,
+                    )
+                    .unwrap(),
                 };
             }
         }
+    }
+    pub fn from_raw(fd: i32) -> Fanotify {
+        Fanotify { fd: fd }
     }
     pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_ADD, mode, AT_FDCWD, path)?;
         Ok(())
     }
-    pub fn add_mountpoint<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
+    pub fn add_mountpoint<P: ?Sized + FanotifyPath>(
+        &self,
+        mode: u64,
+        path: &P,
+    ) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_ADD | FAN_MARK_MOUNT, mode, AT_FDCWD, path)?;
         Ok(())
     }
@@ -109,10 +126,5 @@ impl Fanotify {
             close_fd(i.fd);
         }
         result
-    }
-    pub fn from_raw(fd: i32) -> Fanotify {
-        Fanotify {
-            fd: fd
-        }
     }
 }
