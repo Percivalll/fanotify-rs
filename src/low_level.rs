@@ -1,11 +1,11 @@
+use crate::FanotifyPath;
 use lazy_static::lazy_static;
 use libc;
 use libc::{__s32, __u16, __u32, __u64, __u8};
-use std::os::unix::ffi::OsStrExt;
 use std::io::Error;
 use std::mem;
+use std::os::unix::ffi::OsStrExt;
 use std::slice;
-use crate::FanotifyPath;
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct fanotify_event_metadata {
@@ -355,7 +355,12 @@ pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
             flags,
             mask,
             dirfd,
-            path.as_os_str().as_bytes().iter().map(|p| *p as i8).collect::<Vec<i8>>().as_ptr()
+            path.as_os_str()
+                .as_bytes()
+                .iter()
+                .map(|p| *p as i8)
+                .collect::<Vec<i8>>()
+                .as_ptr(),
         ) {
             0 => {
                 return Ok(());

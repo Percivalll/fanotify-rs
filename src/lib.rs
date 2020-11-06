@@ -1,5 +1,5 @@
-pub mod low_level;
 pub mod high_level;
+pub mod low_level;
 
 pub trait FanotifyPath {
     fn as_os_str(&self) -> &std::ffi::OsStr;

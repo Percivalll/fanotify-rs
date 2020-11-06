@@ -25,17 +25,19 @@ impl Fanotify {
         match mode {
             FanotifyMode::PRECONTENT => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC|FAN_CLASS_PRE_CONTENT, O_CLOEXEC|O_RDONLY).unwrap(),
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_PRE_CONTENT, O_CLOEXEC | O_RDONLY)
+                        .unwrap(),
                 };
             }
             FanotifyMode::CONTENT => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC|FAN_CLASS_CONTENT, O_CLOEXEC|O_RDONLY).unwrap(),
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT, O_CLOEXEC | O_RDONLY)
+                        .unwrap(),
                 };
             }
             FanotifyMode::NOTIF => {
                 return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC|FAN_CLASS_NOTIF, O_CLOEXEC|O_RDONLY).unwrap(),
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_NOTIF, O_CLOEXEC | O_RDONLY).unwrap(),
                 };
             }
         }
