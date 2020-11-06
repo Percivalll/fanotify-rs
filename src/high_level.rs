@@ -42,6 +42,27 @@ impl Fanotify {
             }
         }
     }
+    pub fn new_with_nonblocking(mode: FanotifyMode) -> Self {
+        match mode {
+            FanotifyMode::PRECONTENT => {
+                return Fanotify {
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_PRE_CONTENT | FAN_NONBLOCK, O_CLOEXEC | O_RDONLY)
+                        .unwrap(),
+                };
+            }
+            FanotifyMode::CONTENT => {
+                return Fanotify {
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK, O_CLOEXEC | O_RDONLY)
+                        .unwrap(),
+                };
+            }
+            FanotifyMode::NOTIF => {
+                return Fanotify {
+                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_NOTIF | FAN_NONBLOCK, O_CLOEXEC | O_RDONLY).unwrap(),
+                };
+            }
+        }
+    }
     pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_ADD, mode, AT_FDCWD, path)?;
         Ok(())
