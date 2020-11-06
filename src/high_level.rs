@@ -106,4 +106,9 @@ impl Fanotify {
         }
         result
     }
+    pub fn from_raw(fd: i32) -> Fanotify {
+        Fanotify {
+            fd: fd
+        }
+    }
 }
