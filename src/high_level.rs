@@ -20,27 +20,31 @@ pub enum FanotifyMode {
 impl FanotifyMode {
     fn to_fan_class(&self) -> u32 {
         match self {
-            FanotifyMode::PRECONTENT    => FAN_CLASS_PRE_CONTENT,
-            FanotifyMode::CONTENT       => FAN_CLASS_CONTENT,
-            FanotifyMode::NOTIF         => FAN_CLASS_NOTIF,
+            FanotifyMode::PRECONTENT => FAN_CLASS_PRE_CONTENT,
+            FanotifyMode::CONTENT => FAN_CLASS_CONTENT,
+            FanotifyMode::NOTIF => FAN_CLASS_NOTIF,
         }
     }
 }
 pub use crate::low_level::{
-    FAN_ACCESS, FAN_ACCESS_PERM, FAN_CLOSE, FAN_CLOSE_NOWRITE, FAN_CLOSE_WRITE, FAN_EVENT_ON_CHILD,
-    FAN_MODIFY, FAN_ONDIR, FAN_OPEN, FAN_OPEN_PERM, FAN_OPEN_PERM
+    FAN_ACCESS, FAN_ACCESS_PERM, FAN_ATTRIB, FAN_CLOSE, FAN_CLOSE_NOWRITE, FAN_CLOSE_WRITE,
+    FAN_CREATE, FAN_DELETE, FAN_DELETE_SELF, FAN_EVENT_ON_CHILD, FAN_MODIFY, FAN_MOVE,
+    FAN_MOVED_FROM, FAN_MOVED_TO, FAN_MOVE_SELF, FAN_ONDIR, FAN_OPEN, FAN_OPEN_EXEC,
+    FAN_OPEN_EXEC_PERM, FAN_OPEN_PERM,
 };
 impl Fanotify {
     pub fn new_with_blocking(mode: FanotifyMode) -> Self {
         return Fanotify {
-            fd: fanotify_init(FAN_CLOEXEC | mode.to_fan_class(), O_CLOEXEC | O_RDONLY)
-                .unwrap(),
+            fd: fanotify_init(FAN_CLOEXEC | mode.to_fan_class(), O_CLOEXEC | O_RDONLY).unwrap(),
         };
     }
     pub fn new_with_nonblocking(mode: FanotifyMode) -> Self {
         return Fanotify {
-            fd: fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK | mode.to_fan_class(), O_CLOEXEC | O_RDONLY)
-                .unwrap(),
+            fd: fanotify_init(
+                FAN_CLOEXEC | FAN_NONBLOCK | mode.to_fan_class(),
+                O_CLOEXEC | O_RDONLY,
+            )
+            .unwrap(),
         };
     }
     pub fn from_raw(fd: i32) -> Fanotify {
