@@ -5,6 +5,7 @@ use std::io::Error;
 pub struct Fanotify {
     fd: i32,
 }
+
 #[derive(Debug)]
 pub struct Event {
     pub path: String,
@@ -16,62 +17,31 @@ pub enum FanotifyMode {
     CONTENT,
     NOTIF,
 }
+impl FanotifyMode {
+    fn to_fan_class(&self) -> u32 {
+        match self {
+            FanotifyMode::PRECONTENT    => FAN_CLASS_PRE_CONTENT,
+            FanotifyMode::CONTENT       => FAN_CLASS_CONTENT,
+            FanotifyMode::NOTIF         => FAN_CLASS_NOTIF,
+        }
+    }
+}
 pub use crate::low_level::{
     FAN_ACCESS, FAN_ACCESS_PERM, FAN_CLOSE, FAN_CLOSE_NOWRITE, FAN_CLOSE_WRITE, FAN_EVENT_ON_CHILD,
-    FAN_MODIFY, FAN_ONDIR, FAN_OPEN, FAN_OPEN_PERM,
+    FAN_MODIFY, FAN_ONDIR, FAN_OPEN, FAN_OPEN_PERM, FAN_OPEN_PERM
 };
 impl Fanotify {
     pub fn new_with_blocking(mode: FanotifyMode) -> Self {
-        match mode {
-            FanotifyMode::PRECONTENT => {
-                return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_PRE_CONTENT, O_CLOEXEC | O_RDONLY)
-                        .unwrap(),
-                };
-            }
-            FanotifyMode::CONTENT => {
-                return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT, O_CLOEXEC | O_RDONLY)
-                        .unwrap(),
-                };
-            }
-            FanotifyMode::NOTIF => {
-                return Fanotify {
-                    fd: fanotify_init(FAN_CLOEXEC | FAN_CLASS_NOTIF, O_CLOEXEC | O_RDONLY).unwrap(),
-                };
-            }
-        }
+        return Fanotify {
+            fd: fanotify_init(FAN_CLOEXEC | mode.to_fan_class(), O_CLOEXEC | O_RDONLY)
+                .unwrap(),
+        };
     }
     pub fn new_with_nonblocking(mode: FanotifyMode) -> Self {
-        match mode {
-            FanotifyMode::PRECONTENT => {
-                return Fanotify {
-                    fd: fanotify_init(
-                        FAN_CLOEXEC | FAN_CLASS_PRE_CONTENT | FAN_NONBLOCK,
-                        O_CLOEXEC | O_RDONLY,
-                    )
-                    .unwrap(),
-                };
-            }
-            FanotifyMode::CONTENT => {
-                return Fanotify {
-                    fd: fanotify_init(
-                        FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK,
-                        O_CLOEXEC | O_RDONLY,
-                    )
-                    .unwrap(),
-                };
-            }
-            FanotifyMode::NOTIF => {
-                return Fanotify {
-                    fd: fanotify_init(
-                        FAN_CLOEXEC | FAN_CLASS_NOTIF | FAN_NONBLOCK,
-                        O_CLOEXEC | O_RDONLY,
-                    )
-                    .unwrap(),
-                };
-            }
-        }
+        return Fanotify {
+            fd: fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK | mode.to_fan_class(), O_CLOEXEC | O_RDONLY)
+                .unwrap(),
+        };
     }
     pub fn from_raw(fd: i32) -> Fanotify {
         Fanotify { fd: fd }
