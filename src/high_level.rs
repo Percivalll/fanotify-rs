@@ -5,12 +5,116 @@ use std::io::Error;
 pub struct Fanotify {
     fd: i32,
 }
+impl<T> From<T> for Fanotify
+where T: Into<i32> {
+    fn from(raw: T) -> Fanotify {
+        Fanotify {
+            fd: raw.into()
+        }
+    }
+}
+#[derive(Debug, Clone, Copy)]
+pub enum FanEvent {
+    Access,
+    AccessPerm,
+    Attrib,
+    Close,
+    CloseNowrite,
+    CloseWrite,
+    Create,
+    Delete,
+    DeleteSelf,
+    EventOnChild,
+    Modify,
+    Move,
+    MovedFrom,
+    MovedTo,
+    MoveSelf, 
+    Ondir,
+    Open,
+    OpenExec,
+    OpenExecPerm,
+    OpenPerm,
+}
+impl From<FanEvent> for u64 {
+    fn from(event: FanEvent) -> u64 {
+        match event {
+            FanEvent::Access => FAN_ACCESS,
+            FanEvent::AccessPerm => FAN_ACCESS_PERM,
+            FanEvent::Attrib => FAN_ATTRIB,
+            FanEvent::Close => FAN_CLOSE,
+            FanEvent::CloseNowrite => FAN_CLOSE_NOWRITE,
+            FanEvent::CloseWrite => FAN_CLOSE_WRITE,
+            FanEvent::Create => FAN_CREATE,
+            FanEvent::Delete => FAN_DELETE,
+            FanEvent::DeleteSelf => FAN_DELETE_SELF,
+            FanEvent::EventOnChild => FAN_EVENT_ON_CHILD,
+            FanEvent::Modify => FAN_MODIFY,
+            FanEvent::Move => FAN_MOVE,
+            FanEvent::MovedFrom => FAN_MOVED_FROM,
+            FanEvent::MovedTo => FAN_MOVED_TO,
+            FanEvent::MoveSelf => FAN_MOVE_SELF, 
+            FanEvent::Ondir => FAN_ONDIR,
+            FanEvent::Open => FAN_OPEN,
+            FanEvent::OpenExec => FAN_OPEN_EXEC,
+            FanEvent::OpenExecPerm => FAN_OPEN_EXEC_PERM,
+            FanEvent::OpenPerm => FAN_OPEN_PERM,
+        }
+    }
+}
+struct Mask(u64);
+impl Mask {
+    fn contain<T: Into<u64>>(&self, flag: T) -> bool {
+        self.0 & flag.into() != 0
+    }
+    fn if_contain_push<T: Into<u64> + Copy>(&self, flag: T, vec: &mut Vec<T>) {
+        if self.contain(flag) {
+            vec.push(flag)
+        }
+    }
+}
+fn events_from_mask(mask: u64) -> Vec<FanEvent> {
+    use FanEvent::*;
+    let mask = Mask(mask);
+    let mut ret = Vec::new();
+    // TODO: dry
+    mask.if_contain_push(Access, &mut ret);
+    mask.if_contain_push(AccessPerm, &mut ret);
+    mask.if_contain_push(Attrib, &mut ret);
+    mask.if_contain_push(Close, &mut ret);
+    mask.if_contain_push(CloseNowrite, &mut ret);
+    mask.if_contain_push(CloseWrite, &mut ret);
+    mask.if_contain_push(Create, &mut ret);
+    mask.if_contain_push(Delete, &mut ret);
+    mask.if_contain_push(DeleteSelf, &mut ret);
+    mask.if_contain_push(EventOnChild, &mut ret);
+    mask.if_contain_push(Modify, &mut ret);
+    mask.if_contain_push(MovedFrom, &mut ret);
+    mask.if_contain_push(MovedTo, &mut ret);
+    mask.if_contain_push(MoveSelf, &mut ret);
+    mask.if_contain_push(Ondir, &mut ret);
+    mask.if_contain_push(Open, &mut ret);
+    mask.if_contain_push(OpenExec, &mut ret);
+    mask.if_contain_push(OpenExecPerm, &mut ret);
+    mask.if_contain_push(OpenPerm, &mut ret);
 
+    ret
+}
 #[derive(Debug)]
 pub struct Event {
     pub path: String,
-    pub genre: String,
+    pub events: Vec<FanEvent>,
     pub pid: u32,
+}
+impl From<fanotify_event_metadata> for Event {
+    fn from(metadata: fanotify_event_metadata) -> Self {
+        let path = read_link(format!("/proc/self/fd/{}", metadata.fd)).unwrap_or_default();
+        Event {
+            path: path.to_str().unwrap().to_string(),
+            events: events_from_mask(metadata.mask),
+            pid: metadata.pid as u32
+        }
+    }
 }
 pub enum FanotifyMode {
     PRECONTENT,
@@ -47,9 +151,6 @@ impl Fanotify {
             .unwrap(),
         };
     }
-    pub fn from_raw(fd: i32) -> Fanotify {
-        Fanotify { fd: fd }
-    }
     pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
         fanotify_mark(self.fd, FAN_MARK_ADD, mode, AT_FDCWD, path)?;
         Ok(())
@@ -76,25 +177,9 @@ impl Fanotify {
         for i in events {
             let path = read_link(format!("/proc/self/fd/{}", i.fd)).unwrap_or_default();
             let path = path.to_str().unwrap();
-            let mut genre = "";
-            if i.mask & FAN_ACCESS != 0 {
-                genre = "FAN_ACCESS"
-            } else if i.mask & FAN_ACCESS_PERM != 0 {
-                genre = "FAN_ACCESS_PERM"
-            } else if i.mask & FAN_CLOSE_NOWRITE != 0 {
-                genre = "FAN_CLOSE_NOWRITE"
-            } else if i.mask & FAN_CLOSE_WRITE != 0 {
-                genre = "FAN_CLOSE_WRITE"
-            } else if i.mask & FAN_OPEN != 0 {
-                genre = "FAN_OPEN"
-            } else if i.mask & FAN_OPEN_PERM != 0 {
-                genre = "FAN_OPEN_PERM"
-            } else if i.mask & FAN_MODIFY != 0 {
-                genre = "FAN_MODIFY"
-            }
             result.push(Event {
                 path: String::from(path),
-                genre: String::from(genre),
+                events: Vec::new(),
                 pid: i.pid as u32,
             });
             close_fd(i.fd);
