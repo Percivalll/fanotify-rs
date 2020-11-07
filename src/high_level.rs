@@ -179,7 +179,7 @@ impl Fanotify {
             let path = path.to_str().unwrap();
             result.push(Event {
                 path: String::from(path),
-                events: Vec::new(),
+                events: events_from_mask(i.mask),
                 pid: i.pid as u32,
             });
             close_fd(i.fd);
