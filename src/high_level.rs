@@ -75,17 +75,9 @@ impl From<FanEvent> for u64 {
     }
 }
 
-struct Mask(u64);
-impl Mask {
-    fn contain<T: Into<u64>>(&self, flag: T) -> bool {
-        self.0 & flag.into() != 0
-    }
-}
-
 fn events_from_mask(mask: u64) -> Vec<FanEvent> {
-    let mask = Mask(mask);
     FanEvent::into_enum_iter()
-        .filter(|flag| mask.contain(*flag))
+        .filter(|flag| mask & *flag as u64 != 0)
         .collect::<Vec<_>>()
 }
 
