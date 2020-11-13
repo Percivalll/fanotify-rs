@@ -26,26 +26,26 @@ where
 
 #[derive(Debug, Clone, Copy, IntoEnumIterator, PartialEq)]
 pub enum FanEvent {
-    Access,
-    AccessPerm,
-    Attrib,
-    Close,
-    CloseNowrite,
-    CloseWrite,
-    Create,
-    Delete,
-    DeleteSelf,
-    EventOnChild,
-    Modify,
-    Move,
-    MovedFrom,
-    MovedTo,
-    MoveSelf,
-    Ondir,
-    Open,
-    OpenExec,
-    OpenExecPerm,
-    OpenPerm,
+    Access = FAN_ACCESS as isize,
+    AccessPerm = FAN_ACCESS_PERM as isize,
+    Attrib = FAN_ATTRIB as isize,
+    Close = FAN_CLOSE as isize,
+    CloseNowrite = FAN_CLOSE_NOWRITE as isize,
+    CloseWrite = FAN_CLOSE_WRITE as isize,
+    Create = FAN_CREATE as isize,
+    Delete = FAN_DELETE as isize,
+    DeleteSelf = FAN_DELETE_SELF as isize,
+    EventOnChild = FAN_EVENT_ON_CHILD as isize,
+    Modify = FAN_MODIFY as isize,
+    Move = FAN_MOVE as isize,
+    MovedFrom = FAN_MOVED_FROM as isize,
+    MovedTo = FAN_MOVED_TO as isize,
+    MoveSelf = FAN_MOVE_SELF as isize,
+    Ondir = FAN_ONDIR as isize,
+    Open = FAN_OPEN as isize,
+    OpenExec = FAN_OPEN_EXEC as isize,
+    OpenExecPerm = FAN_OPEN_EXEC_PERM as isize,
+    OpenPerm = FAN_OPEN_PERM as isize,
 }
 
 impl From<FanEvent> for u64 {
@@ -75,6 +75,12 @@ impl From<FanEvent> for u64 {
     }
 }
 
+pub fn events_from_mask(mask: u64) -> Vec<FanEvent> {
+    FanEvent::into_enum_iter()
+        .filter(|flag| (mask & (*flag as u64)) != 0)
+        .collect::<Vec<FanEvent>>()
+}
+
 #[derive(Debug)]
 pub enum FanotifyResponse {
     Allow,
@@ -88,12 +94,6 @@ impl From<FanotifyResponse> for u32 {
             FanotifyResponse::Deny => FAN_DENY,
         }
     }
-}
-
-fn events_from_mask(mask: u64) -> Vec<FanEvent> {
-    FanEvent::into_enum_iter()
-        .filter(|flag| mask & *flag as u64 != 0)
-        .collect::<Vec<_>>()
 }
 
 #[derive(Debug)]
@@ -200,5 +200,9 @@ impl Fanotify {
                 std::mem::size_of::<fanotify_response>(),
             );
         }
+    }
+
+    pub fn as_raw_fd(&self) -> i32 {
+        self.fd
     }
 }
