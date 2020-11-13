@@ -75,6 +75,21 @@ impl From<FanEvent> for u64 {
     }
 }
 
+#[derive(Debug)]
+pub enum FanotifyResponse {
+    Allow,
+    Deny
+}
+
+impl From<FanotifyResponse> for u32 {
+    fn from(resp: FanotifyResponse) -> u32 {
+        match resp {
+            FanotifyResponse::Allow => FAN_ALLOW,
+            FanotifyResponse::Deny  => FAN_DENY
+        }
+    }
+}
+
 fn events_from_mask(mask: u64) -> Vec<FanEvent> {
     FanEvent::into_enum_iter()
         .filter(|flag| mask & *flag as u64 != 0)
@@ -170,5 +185,16 @@ impl Fanotify {
             close_fd(i.fd);
         }
         result
+    }
+
+    pub fn send_response<T: Into<i32>>(&self, fd: T, resp: FanotifyResponse) {
+        use libc::c_void;
+        let response = fanotify_response {
+            fd: fd.into(),
+            response: resp.into()
+        };
+        unsafe {
+            libc::write(self.fd,  Box::into_raw(Box::new(response)) as *const c_void, std::mem::size_of::<fanotify_response>());
+        }
     }
 }
