@@ -374,8 +374,8 @@ pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
 pub fn fanotify_read(fanotify_fd: i32) -> Vec<fanotify_event_metadata> {
     let mut vec = Vec::new();
     unsafe {
-        let buffer = libc::malloc(*FAN_EVENT_METADATA_LEN * 32);
-        let sizeof = libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN * 32);
+        let buffer = libc::malloc(*FAN_EVENT_METADATA_LEN * 200);
+        let sizeof = libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN * 200);
         let src = slice::from_raw_parts(
             buffer as *mut fanotify_event_metadata,
             sizeof as usize / *FAN_EVENT_METADATA_LEN,
