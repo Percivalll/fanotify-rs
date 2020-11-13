@@ -376,7 +376,7 @@ pub fn fanotify_read(fanotify_fd: i32) -> Vec<fanotify_event_metadata> {
     unsafe {
         let buffer = libc::malloc(*FAN_EVENT_METADATA_LEN * 200);
         let sizeof = libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN * 200);
-        if sizeof < 0 {
+        if sizeof == libc::EAGAIN as isize {
             libc::free(buffer);
             return vec;
         }

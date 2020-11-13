@@ -78,14 +78,14 @@ impl From<FanEvent> for u64 {
 #[derive(Debug)]
 pub enum FanotifyResponse {
     Allow,
-    Deny
+    Deny,
 }
 
 impl From<FanotifyResponse> for u32 {
     fn from(resp: FanotifyResponse) -> u32 {
         match resp {
             FanotifyResponse::Allow => FAN_ALLOW,
-            FanotifyResponse::Deny  => FAN_DENY
+            FanotifyResponse::Deny => FAN_DENY,
         }
     }
 }
@@ -174,15 +174,15 @@ impl Fanotify {
     pub fn read_event(&self) -> Vec<Event> {
         let mut result = Vec::new();
         let events = fanotify_read(self.fd);
-        for i in events {
-            let path = read_link(format!("/proc/self/fd/{}", i.fd)).unwrap_or_default();
+        for metadata in events {
+            let path = read_link(format!("/proc/self/fd/{}", metadata.fd)).unwrap_or_default();
             let path = path.to_str().unwrap();
             result.push(Event {
                 path: String::from(path),
-                events: events_from_mask(i.mask),
-                pid: i.pid as u32,
+                events: events_from_mask(metadata.mask),
+                pid: metadata.pid as u32,
             });
-            close_fd(i.fd);
+            close_fd(metadata.fd);
         }
         result
     }
@@ -191,10 +191,14 @@ impl Fanotify {
         use libc::c_void;
         let response = fanotify_response {
             fd: fd.into(),
-            response: resp.into()
+            response: resp.into(),
         };
         unsafe {
-            libc::write(self.fd,  Box::into_raw(Box::new(response)) as *const c_void, std::mem::size_of::<fanotify_response>());
+            libc::write(
+                self.fd,
+                Box::into_raw(Box::new(response)) as *const c_void,
+                std::mem::size_of::<fanotify_response>(),
+            );
         }
     }
 }
