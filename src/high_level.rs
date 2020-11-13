@@ -98,6 +98,7 @@ impl From<fanotify_event_metadata> for Event {
         }
     }
 }
+
 pub enum FanotifyMode {
     PRECONTENT,
     CONTENT,
@@ -116,19 +117,19 @@ impl FanotifyMode {
 
 impl Fanotify {
     pub fn new_with_blocking(mode: FanotifyMode) -> Self {
-        return Fanotify {
+        Fanotify {
             fd: fanotify_init(FAN_CLOEXEC | mode.to_fan_class(), O_CLOEXEC | O_RDONLY).unwrap(),
-        };
+        }
     }
 
     pub fn new_with_nonblocking(mode: FanotifyMode) -> Self {
-        return Fanotify {
+        Fanotify {
             fd: fanotify_init(
                 FAN_CLOEXEC | FAN_NONBLOCK | mode.to_fan_class(),
                 O_CLOEXEC | O_RDONLY,
             )
             .unwrap(),
-        };
+        }
     }
 
     pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
