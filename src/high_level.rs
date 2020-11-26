@@ -98,6 +98,7 @@ impl From<FanotifyResponse> for u32 {
 
 #[derive(Debug)]
 pub struct Event {
+    pub fd: i32,
     pub path: String,
     pub events: Vec<FanEvent>,
     pub pid: u32,
@@ -107,6 +108,7 @@ impl From<fanotify_event_metadata> for Event {
     fn from(metadata: fanotify_event_metadata) -> Self {
         let path = read_link(format!("/proc/self/fd/{}", metadata.fd)).unwrap_or_default();
         Event {
+            fd: metadata.fd,
             path: path.to_str().unwrap().to_string(),
             events: events_from_mask(metadata.mask),
             pid: metadata.pid as u32,
@@ -178,6 +180,7 @@ impl Fanotify {
             let path = read_link(format!("/proc/self/fd/{}", metadata.fd)).unwrap_or_default();
             let path = path.to_str().unwrap();
             result.push(Event {
+                fd: metadata.fd,
                 path: String::from(path),
                 events: events_from_mask(metadata.mask),
                 pid: metadata.pid as u32,
