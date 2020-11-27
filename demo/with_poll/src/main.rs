@@ -13,6 +13,7 @@ fn main() {
         (version:       crate_version!())
         (author:        crate_authors!())
         (about:         crate_description!())
+        (@arg verbose: -v --verbose "verbose")
         (@arg path: +required "watch target mount point")
         (@arg scanner: "scanner (if scanner exit by 0 then allow execute.)")
     )
@@ -33,7 +34,9 @@ fn main() {
         if poll_num > 0 {
             assert!(fds[0].revents().unwrap().contains(PollFlags::POLLIN));
             for event in fd.read_event() {
-                println!("{:#?}", event);
+                if app.is_present("verbose") {
+                    println!("{:#?}", event);
+                }
                 if event.events.contains(&FanEvent::OpenExecPerm) {
                     let mut response = FanotifyResponse::Allow;
                     if let Some(scanner) = app.value_of("scanner") {
