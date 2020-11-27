@@ -34,15 +34,20 @@ fn main() {
             for event in fd.read_event() {
                 println!("{:#?}", event);
                 if event.events.contains(&FanEvent::OpenExecPerm) {
+                    let mut response = FanotifyResponse::Allow;
                     if let Some(scanner) = app.value_of("scanner") {
-                        if Command::new(scanner).arg(event.path).status().unwrap().code().unwrap() != 0 {
-                            fd.send_response(event.fd, FanotifyResponse::Deny);
-                        } else {
-                            fd.send_response(event.fd, FanotifyResponse::Allow);
+                        if Command::new(scanner)
+                            .arg(event.path)
+                            .status()
+                            .unwrap()
+                            .code()
+                            .unwrap()
+                            != 0
+                        {
+                            response = FanotifyResponse::Deny;
                         }
-                    } else {
-                        fd.send_response(event.fd, FanotifyResponse::Allow);
                     }
+                    fd.send_response(event.fd, response);
                 }
             }
         } else {
