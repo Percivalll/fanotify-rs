@@ -5,6 +5,7 @@ extern crate nix;
 
 use fanotify::high_level::*;
 use nix::poll::{poll, PollFd, PollFlags};
+use std::process::Command;
 
 fn main() {
     let app = clap_app!(fanotify_demo =>
@@ -12,6 +13,7 @@ fn main() {
         (author:        crate_authors!())
         (about:         crate_description!())
         (@arg path: +required "watch target mount point")
+        (@arg scanner: "scanner (if scanner exit by 0 then allow execute.)")
     )
     .get_matches();
 
@@ -20,7 +22,7 @@ fn main() {
         FAN_OPEN_EXEC_PERM | FAN_CLOSE_WRITE,
         app.value_of("path").unwrap(),
     ) {
-        eprintln!("Error on add_mountpoint {}", e);
+        eprintln!("Error on add_mountpoint: {}", e);
         std::process::exit(1);
     }
 
@@ -32,26 +34,19 @@ fn main() {
             for event in fd.read_event() {
                 println!("{:#?}", event);
                 if event.events.contains(&FanEvent::OpenExecPerm) {
-                    loop {
-                        eprintln!("run?[Y/n]");
-                        let mut input = String::new();
-                        std::io::stdin().read_line(&mut input).unwrap();
-                        match *input.into_bytes().first().unwrap() as char {
-                            'y'|'Y' => {
-                                fd.send_response(event.fd, FanotifyResponse::Allow);
-                                break;
-                            },
-                            'n'|'N' => {
-                                fd.send_response(event.fd, FanotifyResponse::Deny);
-                                break;
-                            },
-                            _ => continue
+                    if let Some(scanner) = app.value_of("scanner") {
+                        if Command::new(scanner).arg(event.path).status().unwrap().code().unwrap() != 0 {
+                            fd.send_response(event.fd, FanotifyResponse::Deny);
+                        } else {
+                            fd.send_response(event.fd, FanotifyResponse::Allow);
                         }
+                    } else {
+                        fd.send_response(event.fd, FanotifyResponse::Allow);
                     }
                 }
             }
         } else {
-            eprintln!("poll_num <= 0");
+            eprintln!("poll_num <= 0!");
             break;
         }
     }
