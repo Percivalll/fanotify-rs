@@ -16,3 +16,9 @@ impl FanotifyPath for str {
         std::ffi::OsStr::new(self)
     }
 }
+
+impl FanotifyPath for String {
+    fn as_os_str(&self) -> &std::ffi::OsStr {
+        std::ffi::OsStr::new(self.as_str())
+    }
+}
