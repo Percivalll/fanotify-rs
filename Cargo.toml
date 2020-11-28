@@ -1,6 +1,6 @@
 [package]
 name = "fanotify-rs"
-version = "0.2.7"
+version = "0.3.0"
 authors = ["zhanglei <mrzhang.lei@outlook.com>", "n01e0 <noleo@vanillabeans.mobi>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
