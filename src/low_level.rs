@@ -1,9 +1,10 @@
+use crate::FanotifyPath;
 use lazy_static::lazy_static;
 use libc;
 use libc::{__s32, __u16, __u32, __u64, __u8};
-use std::ffi;
 use std::io::Error;
 use std::mem;
+use std::os::unix::ffi::OsStrExt;
 use std::slice;
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -341,12 +342,12 @@ pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32, Error> {
 /// let fd = fanotify_init(FAN_CLASS_NOTIF, O_RDONLY).unwrap();
 /// fanotify_mark(fd, FAN_MARK_ADD, FAN_OPEN | FAN_CLOSE, AT_FDCWD, "./").unwrap();
 /// ```
-pub fn fanotify_mark(
+pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
     fanotify_fd: i32,
     flags: u32,
     mask: u64,
     dirfd: i32,
-    path: &'static str,
+    path: &P,
 ) -> Result<(), Error> {
     unsafe {
         match libc::fanotify_mark(
@@ -354,7 +355,12 @@ pub fn fanotify_mark(
             flags,
             mask,
             dirfd,
-            ffi::CString::new(path).unwrap().as_ptr(),
+            path.as_os_str()
+                .as_bytes()
+                .iter()
+                .map(|p| *p as i8)
+                .collect::<Vec<i8>>()
+                .as_ptr(),
         ) {
             0 => {
                 return Ok(());
@@ -368,13 +374,15 @@ pub fn fanotify_mark(
 pub fn fanotify_read(fanotify_fd: i32) -> Vec<fanotify_event_metadata> {
     let mut vec = Vec::new();
     unsafe {
-        let buffer = libc::malloc(*FAN_EVENT_METADATA_LEN * 32);
-        let sizeof = libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN * 32);
-        let src = slice::from_raw_parts(
-            buffer as *mut fanotify_event_metadata,
-            sizeof as usize / *FAN_EVENT_METADATA_LEN,
-        );
-        vec.extend_from_slice(src);
+        let buffer = libc::malloc(*FAN_EVENT_METADATA_LEN * 200);
+        let sizeof = libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN * 200);
+        if sizeof != libc::EAGAIN as isize && sizeof > 0 {
+            let src = slice::from_raw_parts(
+                buffer as *mut fanotify_event_metadata,
+                sizeof as usize / *FAN_EVENT_METADATA_LEN,
+            );
+            vec.extend_from_slice(src);
+        }
         libc::free(buffer);
     }
     vec
