@@ -284,6 +284,39 @@ pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32, Error> {
         };
     }
 }
+/// Helper macro to get path pointer for an expected primitive type (depending
+/// on architecture).
+macro_rules! path_ptr_for_type {
+    ($type:ident, $path:expr) => {
+        $path
+            .as_os_str()
+            .as_bytes()
+            .iter()
+            .map(|p| *p as $type)
+            .collect::<Vec<$type>>()
+            .as_ptr()
+    };
+}
+/// Helper macro to get path pointer (implemented separately for each
+/// architecture.
+#[cfg(target_arch = "x86_64")]
+macro_rules! path_ptr {
+    ($path:expr) => {
+        path_ptr_for_type!(i8, $path)
+    };
+}
+#[cfg(target_arch = "aarch64")]
+macro_rules! path_ptr {
+    ($path:expr) => {
+        path_ptr_for_type!(u8, $path)
+    };
+}
+#[cfg(target_arch = "arm")]
+macro_rules! path_ptr {
+    ($path:expr) => {
+        path_ptr_for_type!(u8, $path)
+    };
+}
 /// Adds, removes, or modifies an fanotify mark on a filesystem object.  
 // The caller must have read permission on the filesystem object that is to be marked.
 ///
@@ -350,18 +383,7 @@ pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
     path: &P,
 ) -> Result<(), Error> {
     unsafe {
-        match libc::fanotify_mark(
-            fanotify_fd,
-            flags,
-            mask,
-            dirfd,
-            path.as_os_str()
-                .as_bytes()
-                .iter()
-                .map(|p| *p as i8)
-                .collect::<Vec<i8>>()
-                .as_ptr(),
-        ) {
+        match libc::fanotify_mark(fanotify_fd, flags, mask, dirfd, path_ptr!(path)) {
             0 => {
                 return Ok(());
             }
