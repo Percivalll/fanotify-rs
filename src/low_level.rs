@@ -1,5 +1,4 @@
 use crate::FanotifyPath;
-use lazy_static::lazy_static;
 use libc;
 use libc::{__s32, __u16, __u32, __u64, __u8};
 use std::io::Error;
@@ -50,10 +49,9 @@ pub struct fanotify_response {
     pub fd: __s32,
     pub response: __u32,
 }
-lazy_static! {
-    /// Get current platform sizeof of fanotify_event_metadata.
-    pub static ref FAN_EVENT_METADATA_LEN: usize = mem::size_of::<fanotify_event_metadata>();
-}
+
+/// Current platform sizeof of fanotify_event_metadata.
+const FAN_EVENT_METADATA_LEN: usize = mem::size_of::<fanotify_event_metadata>();
 /// This const is used to be compared to vers field of fanotify_event_metadata to verify that the structures returned at run time match the structures defined at compile time.
 ///
 ///
@@ -374,12 +372,12 @@ pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
 pub fn fanotify_read(fanotify_fd: i32) -> Vec<fanotify_event_metadata> {
     let mut vec = Vec::new();
     unsafe {
-        let buffer = libc::malloc(*FAN_EVENT_METADATA_LEN * 200);
-        let sizeof = libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN * 200);
+        let buffer = libc::malloc(FAN_EVENT_METADATA_LEN * 200);
+        let sizeof = libc::read(fanotify_fd, buffer, FAN_EVENT_METADATA_LEN * 200);
         if sizeof != libc::EAGAIN as isize && sizeof > 0 {
             let src = slice::from_raw_parts(
                 buffer as *mut fanotify_event_metadata,
-                sizeof as usize / *FAN_EVENT_METADATA_LEN,
+                sizeof as usize / FAN_EVENT_METADATA_LEN,
             );
             vec.extend_from_slice(src);
         }
