@@ -13,7 +13,7 @@ fn main() {
         (about:         crate_description!())
         (@arg path: +required "watch target mount point")
     )
-    .get_matches();
+        .get_matches();
 
     let fd = Fanotify::new_with_nonblocking(FanotifyMode::CONTENT);
     fd.add_mountpoint(FAN_OPEN_EXEC | FAN_CLOSE_WRITE, app.value_of("path").unwrap()).unwrap();

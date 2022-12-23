@@ -2,3 +2,5 @@
 Cargo.lock
 /src/main.rs
 /profile/target
+
+.idea

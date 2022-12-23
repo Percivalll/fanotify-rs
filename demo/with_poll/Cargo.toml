@@ -2,7 +2,7 @@
 name = "with_poll"
 version = "0.1.0"
 authors = ["n01e0 <reoshiseki@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "fanotify-rs with poll"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,4 +10,4 @@ description = "fanotify-rs with poll"
 [dependencies]
 clap = "2.33.3"
 fanotify-rs = { git = "https://github.com/n01e0/fanotify-rs" }
-nix = "0.19.0"
+nix = "0.26.1"
