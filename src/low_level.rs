@@ -350,17 +350,16 @@ pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
     path: &P,
 ) -> Result<(), Error> {
     unsafe {
+        let mut raw_path = path.as_os_str().as_bytes().to_vec();
+        raw_path.push(0u8); // data must be null terminated
+
+        // Path is a c-string, so must be null terminated
         match libc::fanotify_mark(
             fanotify_fd,
             flags,
             mask,
             dirfd,
-            path.as_os_str()
-                .as_bytes()
-                .iter()
-                .map(|p| *p as i8)
-                .collect::<Vec<i8>>()
-                .as_ptr(),
+            raw_path.as_ptr() as *const i8,
         ) {
             0 => {
                 return Ok(());

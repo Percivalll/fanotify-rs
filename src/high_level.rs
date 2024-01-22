@@ -3,6 +3,7 @@ use crate::FanotifyPath;
 use enum_iterator::IntoEnumIterator;
 use std::fs::read_link;
 use std::io::Error;
+use std::os::fd::{AsFd, BorrowedFd};
 
 pub use crate::low_level::{
     FAN_ACCESS, FAN_ACCESS_PERM, FAN_ATTRIB, FAN_CLOSE, FAN_CLOSE_NOWRITE, FAN_CLOSE_WRITE,
@@ -13,6 +14,12 @@ pub use crate::low_level::{
 
 pub struct Fanotify {
     fd: i32,
+}
+
+impl AsFd for Fanotify {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        unsafe { BorrowedFd::borrow_raw(self.fd)}
+    }
 }
 
 impl<T> From<T> for Fanotify
