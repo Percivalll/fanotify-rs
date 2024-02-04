@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
  
-## [Unreleased] - 2024-02-04
+## [0.3.1-rc1] - 2024-02-04
  
 Big update and refactor. The overral structure remains the same, but includes a number of fixes included in outstanding PRs. The update have been checked against current test cases and the PoC, but need review before release.
  
