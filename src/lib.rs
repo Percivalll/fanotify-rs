@@ -17,8 +17,8 @@ impl FanotifyPath for str {
     }
 }
 
-impl FanotifyPath for String {
+impl<T: AsRef<std::ffi::OsStr>> FanotifyPath for T {
     fn as_os_str(&self) -> &std::ffi::OsStr {
-        std::ffi::OsStr::new(self.as_str())
+        self.as_ref()
     }
 }
