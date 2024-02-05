@@ -147,20 +147,19 @@ impl FanotifyMode {
 }
 
 impl Fanotify {
-    pub fn new_with_blocking(mode: FanotifyMode) -> Self {
-        Fanotify {
-            fd: fanotify_init(FAN_CLOEXEC | mode.to_fan_class(), (O_CLOEXEC | O_RDONLY) as u32).unwrap(),
-        }
+    pub fn new_blocking(mode: FanotifyMode) -> Result<Self, Error> {
+        Ok(Fanotify {
+            fd: fanotify_init(FAN_CLOEXEC | mode.to_fan_class(), (O_CLOEXEC | O_RDONLY) as u32)?,
+        })
     }
 
-    pub fn new_with_nonblocking(mode: FanotifyMode) -> Self {
-        Fanotify {
+    pub fn new_nonblocking(mode: FanotifyMode) -> Result<Self, Error> {
+        Ok(Fanotify {
             fd: fanotify_init(
                 FAN_CLOEXEC | FAN_NONBLOCK | mode.to_fan_class(),
                 (O_CLOEXEC | O_RDONLY) as u32,
-            )
-            .unwrap(),
-        }
+            )?
+        })
     }
 
     pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
@@ -222,5 +221,39 @@ impl Fanotify {
 
     pub fn as_raw_fd(&self) -> i32 {
         self.fd
+    }
+}
+
+pub struct FanotifyBuilder {
+    class: FanotifyMode,
+    flags: u32,
+    event_flags: u32
+}
+
+impl FanotifyBuilder {
+    pub fn new() -> Self {
+        Self {
+            class: FanotifyMode::NOTIF,
+            flags: FAN_CLOEXEC,
+            event_flags: O_CLOEXEC as u32
+        }
+    }
+
+    pub fn with_class(self, class: FanotifyMode) -> Self {
+        Self { class, ..self }
+    }
+
+    pub fn with_flags(self, flags: u32) -> Self {
+        Self { flags: FAN_CLOEXEC | flags, ..self }
+    }
+
+    pub fn with_event_flags(self, event_flags: u32) -> Self {
+        Self { event_flags, ..self}
+    }
+
+    pub fn register(&self) -> Result<Fanotify, Error> {
+        Ok(Fanotify {
+            fd: fanotify_init(self.flags | self.class.to_fan_class(), self.event_flags)?,
+        })
     }
 }

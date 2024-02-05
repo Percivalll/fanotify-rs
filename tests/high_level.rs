@@ -5,7 +5,7 @@ fn high_level_test() {
         FAN_OPEN,
     };
     use std::io::{Read, Write};
-    let ft = Fanotify::new_with_blocking(FanotifyMode::NOTIF);
+    let ft = Fanotify::new_blocking(FanotifyMode::NOTIF).expect("Error regitering fanotify listener");
     ft.add_path(
         FAN_ACCESS | FAN_CLOSE | FAN_EVENT_ON_CHILD | FAN_MODIFY | FAN_ONDIR | FAN_OPEN,
         "/tmp",
