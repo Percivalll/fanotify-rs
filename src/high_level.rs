@@ -222,8 +222,19 @@ impl Fanotify {
     pub fn as_raw_fd(&self) -> i32 {
         self.fd
     }
+
+    pub fn close(self) {
+        close_fd(self.fd)
+    }
 }
 
+impl Drop for Fanotify {
+    fn drop(&mut self) {
+        close_fd(self.fd);
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct FanotifyBuilder {
     class: FanotifyMode,
     flags: u32,
