@@ -21,6 +21,11 @@ pub struct Fanotify {
     fd: i32,
 }
 
+// SAFETY: the `fanotify_*` functions are thread safe, and file descriptors are safe for
+// sharing betweent threads if they are used in threadsafe functions
+unsafe impl Send for Fanotify {}
+unsafe impl Sync for Fanotify {}
+
 impl AsFd for Fanotify {
     fn as_fd(&self) -> BorrowedFd<'_> {
         unsafe { BorrowedFd::borrow_raw(self.fd) }
@@ -149,7 +154,10 @@ impl FanotifyMode {
 impl Fanotify {
     pub fn new_blocking(mode: FanotifyMode) -> Result<Self, Error> {
         Ok(Fanotify {
-            fd: fanotify_init(FAN_CLOEXEC | mode.to_fan_class(), (O_CLOEXEC | O_RDONLY) as u32)?,
+            fd: fanotify_init(
+                FAN_CLOEXEC | mode.to_fan_class(),
+                (O_CLOEXEC | O_RDONLY) as u32,
+            )?,
         })
     }
 
@@ -158,7 +166,7 @@ impl Fanotify {
             fd: fanotify_init(
                 FAN_CLOEXEC | FAN_NONBLOCK | mode.to_fan_class(),
                 (O_CLOEXEC | O_RDONLY) as u32,
-            )?
+            )?,
         })
     }
 
@@ -234,11 +242,19 @@ impl Drop for Fanotify {
     }
 }
 
+impl Clone for Fanotify {
+    fn clone(&self) -> Self {
+        Self {
+            fd: unsafe { libc::dup(self.fd) },
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct FanotifyBuilder {
     class: FanotifyMode,
     flags: u32,
-    event_flags: u32
+    event_flags: u32,
 }
 
 impl FanotifyBuilder {
@@ -246,7 +262,7 @@ impl FanotifyBuilder {
         Self {
             class: FanotifyMode::NOTIF,
             flags: FAN_CLOEXEC,
-            event_flags: O_CLOEXEC as u32
+            event_flags: O_CLOEXEC as u32,
         }
     }
 
@@ -255,11 +271,17 @@ impl FanotifyBuilder {
     }
 
     pub fn with_flags(self, flags: u32) -> Self {
-        Self { flags: FAN_CLOEXEC | flags, ..self }
+        Self {
+            flags: FAN_CLOEXEC | flags,
+            ..self
+        }
     }
 
     pub fn with_event_flags(self, event_flags: u32) -> Self {
-        Self { event_flags, ..self}
+        Self {
+            event_flags,
+            ..self
+        }
     }
 
     pub fn register(&self) -> Result<Fanotify, Error> {

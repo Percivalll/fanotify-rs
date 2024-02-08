@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.1-rc2] - 2024-02-08
+
+Implement `Send`, `Sync`, and `Clone` for `Fanotify`.
+
+### Added
+Added implementations of the `Send`, `Sync`, and `Clone` traits for better ergonomics on the `Fanotify` type.
+
 ## [0.3.1-rc2] - 2024-02-05
 
 Rename `Fanotify` functions and stop eating registration errors.
