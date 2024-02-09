@@ -1,23 +1,23 @@
 use std::fs::File;
-use std::time::{SystemTime,Duration};
+use std::time::SystemTime;
 use std::thread;
 use fanotify::high_level::*;
-fn monitor(){
+
+fn monitor() {
     let fty = Fanotify::new_with_blocking(FanotifyMode::NOTIF);
-    fty.add_path(FAN_CLOSE_WRITE | FAN_EVENT_ON_CHILD| FAN_ONDIR,"/tmp");
-    loop{
-        for i in fty.read_event(){
-            println!("{:?}",i);
-        }
+    let _ = fty.add_path(FAN_CLOSE_WRITE | FAN_EVENT_ON_CHILD | FAN_ONDIR, "/tmp");
+    loop {
+        let _ = fty.read_event();
     }
 }
+
 fn main() {
-    let heldler=thread::spawn(||monitor());
-    let sys_time = SystemTime::now();
+    let _thread_handle = thread::spawn(|| monitor());
+    let start_time = SystemTime::now();
     for i in 0..1000000 {
-        File::create("/tmp/".to_string() + &i.to_string());
+        let _ = File::create(format!("/tmp/{}", i));
     }
-    let difference = sys_time
+    let duration = start_time
         .elapsed().unwrap();
-    println!("QPS:{:?}", 1000000/difference.as_secs());
+    println!("QPS:{:?}", 1000000 / duration.as_secs());
 }

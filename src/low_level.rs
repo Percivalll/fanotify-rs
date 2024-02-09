@@ -1,18 +1,21 @@
 use crate::FanotifyPath;
-use lazy_static::lazy_static;
-use libc;
 use libc::{__s32, __u16, __u32, __u64, __u8};
 use std::io::Error;
 use std::mem;
 use std::os::unix::ffi::OsStrExt;
 use std::slice;
+
+#[doc(hidden)]
+/// Re-export relevant libc constants
+pub use libc::{O_RDONLY, O_WRONLY, O_RDWR, O_LARGEFILE, O_CLOEXEC, O_APPEND, O_DSYNC, O_NOATIME, O_NONBLOCK, O_SYNC};
+
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
-pub struct fanotify_event_metadata {
+pub struct FanotifyEventMetadata {
     /// This is the length of the data for the current event and the
     /// offset to the next event in the buffer.  Without
-    /// FAN_REPORT_FID, the value of event_len is always
-    /// FAN_EVENT_METADATA_LEN.  With FAN_REPORT_FID, event_len also
+    /// `FAN_REPORT_FID`, the value of event_len is always
+    /// FAN_EVENT_METADATA_LEN.  With `FAN_REPORT_FID`, event_len also
     /// includes the variable length file identifier.
     pub event_len: __u32,
     /// This field holds a version number for the structure.  It must
@@ -31,7 +34,7 @@ pub struct fanotify_event_metadata {
     /// This is a bit mask describing the event (see below).
     pub mask: __u64,
     /// This is an open file descriptor for the object being accessed,or FAN_NOFD if a queue overflow occurred.  
-    /// If the fanotify file descriptor has been initialized using FAN_REPORT_FID,
+    /// If the fanotify file descriptor has been initialized using `FAN_REPORT_FID`,
     /// applications should expect this value to be set to FAN_NOFDfor each event that is received.  The file descriptor can be
     /// used to access the contents of the monitored file or directory.  The reading application is responsible for closing this file descriptor.
     /// When calling fanotify_init(2), the caller may specify (via the event_f_flags argument) various file status flags that are to
@@ -43,18 +46,19 @@ pub struct fanotify_event_metadata {
     /// the PID of the process that caused the event.
     pub pid: __s32,
 }
+
 #[derive(Debug)]
 #[repr(C)]
 /// It is used to control file access.
-pub struct fanotify_response {
+pub struct FanotifyResponse {
     pub fd: __s32,
     pub response: __u32,
 }
-lazy_static! {
-    /// Get current platform sizeof of fanotify_event_metadata.
-    pub static ref FAN_EVENT_METADATA_LEN: usize = mem::size_of::<fanotify_event_metadata>();
-}
-/// This const is used to be compared to vers field of fanotify_event_metadata to verify that the structures returned at run time match the structures defined at compile time.
+
+/// Current platform sizeof of `FanotifyEventMetadata`.
+const FAN_EVENT_METADATA_LEN: usize = mem::size_of::<FanotifyEventMetadata>();
+
+/// This const is used to be compared to vers field of `FanotifyEventMetadata` to verify that the structures returned at run time match the structures defined at compile time.
 ///
 ///
 /// In case of a mismatch, the application should abandon trying to use the fanotify file descriptor.
@@ -70,18 +74,17 @@ pub const FAN_NOFD: i32 = -1;
 /// The event queue exceeded the limit of 16384 entries.
 ///
 ///
-/// This limit can be overridden by specifying the FAN_UNLIMITED_QUEUE flag when calling fanotify_init(2).
+/// This limit can be overridden by specifying the `FAN_UNLIMITED_QUEUE` flag when calling `fanotify_init(2)`.
 pub const FAN_Q_OVERFLOW: u64 = 0x0000_4000;
-/// Set the close-on-exec flag (FD_CLOEXEC) on the new file descriptor.
+/// Set the close-on-exec flag `(FD_CLOEXEC) `on the new file descriptor.
 ///
-////
-/// See the description of the O_CLOEXEC flag in open(2).
+/// See the description of the `O_CLOEXEC flag` in `open(2)`.
 pub const FAN_CLOEXEC: u32 = 0x0000_0001;
-/// Enable the nonblocking flag (O_NONBLOCK) for the file descriptor.
+/// Enable the nonblocking flag `(O_NONBLOCK)` for the file descriptor.
 ///
 ///
 /// Reading from the file descriptor will not block. <br/>
-/// Instead, if no data is available, read(2) fails with the error EAGAIN
+/// Instead, if no data is available, `read(2)` fails with the error `EAGAIN`
 pub const FAN_NONBLOCK: u32 = 0x0000_0002;
 /// This is the default value.  It does not need to be specified.
 ///
@@ -100,12 +103,12 @@ pub const FAN_CLASS_CONTENT: u32 = 0x0000_0004;
 /// This notification class might be used by hierarchical storage managers, for example.
 pub const FAN_CLASS_PRE_CONTENT: u32 = 0x0000_0008;
 /// Remove the limit of 16384 events for the event queue.  <br/>
-/// Use of this flag requires the CAP_SYS_ADMIN capability.
+/// Use of this flag requires the `CAP_SYS_ADMIN` capability.
 pub const FAN_UNLIMITED_QUEUE: u32 = 0x0000_0010;
 /// Remove the limit of 8192 marks.  <br/>
-/// Use of this flag requires the CAP_SYS_ADMIN capability.
+/// Use of this flag requires the `CAP_SYS_ADMIN` capability.
 pub const FAN_UNLIMITED_MARKS: u32 = 0x0000_0020;
-/// CONFIG_AUDIT_SYSCALL
+/// `CONFIG_AUDIT_SYSCALL`
 pub const FAN_ENABLE_AUDIT: u32 = 0x0000_0040;
 
 /// Flags to determine fanotify event format
@@ -120,20 +123,6 @@ pub const FAN_REPORT_DIR_FID: u32 = 0x0000_0400;
 /// Flags to determine fanotify event format
 /// report events with name
 pub const FAN_REPORT_NAME: u32 = 0x0000_0800;
-
-/// This value allows only read access.
-pub const O_RDONLY: u32 = 0;
-/// This value allows only write access.
-pub const O_WRONLY: u32 = 1;
-/// This value allows read and write access.
-pub const O_RDWR: u32 = 2;
-pub const O_LARGEFILE: u32 = 0;
-pub const O_CLOEXEC: u32 = 0x80000;
-pub const O_APPEND: u32 = 1024;
-pub const O_DSYNC: u32 = 4096;
-pub const O_NOATIME: u32 = 0o1000000;
-pub const O_NONBLOCK: u32 = 2048;
-pub const O_SYNC: u32 = 1052672;
 /// Create an event when a file or directory is accessed (read).
 pub const FAN_ACCESS: u64 = 0x0000_0001;
 /// Create an event when a file is modified (write).
@@ -151,7 +140,7 @@ pub const FAN_MOVED_FROM: u64 = 0x0000_0040;
 /// Create an event when a file was moved to Y
 pub const FAN_MOVED_TO: u64 = 0x0000_0080;
 /// Create an event when a file was moved
-pub const FAN_MOVE: u64 = self::FAN_MOVED_TO | self::FAN_MOVED_FROM;
+pub const FAN_MOVE: u64 = FAN_MOVED_TO | FAN_MOVED_FROM;
 /// Create an event when a file created
 pub const FAN_CREATE: u64 = 0x0000_0100;
 /// Create an event when a file deleted
@@ -163,51 +152,51 @@ pub const FAN_MOVE_SELF: u64 = 0x0000_0800;
 /// Create an event when file was opened for exec
 pub const FAN_OPEN_EXEC: u64 = 0x0000_1000;
 /// Create an event when a permission to open a file or directory is requested. <br/>
-/// An fanotify file descriptor created with FAN_CLASS_PRE_CONTENT or FAN_CLASS_CONTENT is required.
+/// An fanotify file descriptor created with `FAN_CLASS_PRE_CONTENT` or `FAN_CLASS_CONTENT` is required.
 pub const FAN_OPEN_PERM: u64 = 0x0001_0000;
 /// Create an event when a permission to read a file or directoryis requested. <br/>
-/// An fanotify file descriptor created with FAN_CLASS_PRE_CONTENT or FAN_CLASS_CONTENT is required.
+/// An fanotify file descriptor created with `FAN_CLASS_PRE_CONTENT` or `FAN_CLASS_CONTENT` is required.
 pub const FAN_ACCESS_PERM: u64 = 0x0002_0000;
 /// Create an event when a permission to open a file for exec is requested. <br/>
-/// An fanotify file descriptor created with FAN_CLASS_PRE_CONTENT or FAN_CLASS_CONTENT is required.
+/// An fanotify file descriptor created with `FAN_CLASS_PRE_CONTENT` or `FAN_CLASS_CONTENT` is required.
 pub const FAN_OPEN_EXEC_PERM: u64 = 0x0004_0000;
-/// Create events for directories—for example, when opendir(3),readdir(3) (but see BUGS), and closedir(3) are called. <br/>
+/// Create events for directories—for example, when `opendir(3)`, `readdir(3)` (but see BUGS), and `closedir(3)` are called. <br/>
 /// Without this flag, events are created only for files. <br/>
-/// In the context of directory entry events, such as FAN_CREATE,FAN_DELETE, FAN_MOVED_FROM, and FAN_MOVED_TO, specifying the flag FAN_ONDIR is required in order to create events when subdirectory entries are modified (i.e., mkdir(2)/ rmdir(2)).
+/// In the context of directory entry events, such as `FAN_CREATE,FAN_DELETE`, `FAN_MOVED_FROM`, and `FAN_MOVED_TO`, specifying the flag `FAN_ONDIR` is required in order to create events when subdirectory entries are modified (i.e., `mkdir(2)`/`rmdir(2)`).
 pub const FAN_ONDIR: u64 = 0x4000_0000;
 /// Events for the immediate children of marked directories shall be created.
 ///
 ///
 /// The flag has no effect when marking mounts and filesystems.   <br/>
 /// Note that events are not generated for children of the subdirectories of marked directories. <br/>
-/// More specifically, the directory entry modification events FAN_CREATE, FAN_DELETE, FAN_MOVED_FROM, and FAN_MOVED_TO arenot generated for any entry modifications performed inside subdirectories of marked directories.   <br/>
-/// Note that the events FAN_DELETE_SELF and FAN_MOVE_SELF are not generated for children of marked directories.   <br/>
+/// More specifically, the directory entry modification events `FAN_CREATE`, `FAN_DELETE`, `FAN_MOVED_FROM`, and `FAN_MOVED_TO` arenot generated for any entry modifications performed inside subdirectories of marked directories.   <br/>
+/// Note that the events `FAN_DELETE_SELF` and `FAN_MOVE_SELF` are not generated for children of marked directories.   <br/>
 /// To monitor complete directory trees it is necessary to mark the relevant mount or filesystem. <br/>
 pub const FAN_EVENT_ON_CHILD: u64 = 0x0800_0000;
-/// A file is closed (FAN_CLOSE_WRITE|FAN_CLOSE_NOWRITE). <br/>
+/// A file is closed `(FAN_CLOSE_WRITE|FAN_CLOSE_NOWRITE)`. <br/>
 pub const FAN_CLOSE: u64 = FAN_CLOSE_WRITE | FAN_CLOSE_NOWRITE;
-/// The events in mask will be added to the mark mask (or to the ignore mask).  mask must be nonempty or the error EINVAL will occur.
+/// The events in mask will be added to the mark mask (or to the ignore mask).  mask must be nonempty or the error `EINVAL` will occur.
 pub const FAN_MARK_ADD: u32 = 0x0000_0001;
-/// The events in argument mask will be removed from the mark mask (or from the ignore mask).  mask must be nonempty or the error EINVAL will occur.
+/// The events in argument mask will be removed from the mark mask (or from the ignore mask).  mask must be nonempty or the error `EINVAL` will occur.
 pub const FAN_MARK_REMOVE: u32 = 0x0000_0002;
 /// Remove either all marks for filesystems, all marks for mounts,or all marks for directories and files from the fanotify group.  <br/>
-/// If flags contains FAN_MARK_MOUNT, all marks for mounts are removed from the group.  <br/>
-/// If flags contains FAN_MARK_FILESYSTEM, all marks for filesystems are removed from the group.  <br/>
+/// If flags contains `FAN_MARK_MOUNT`, all marks for mounts are removed from the group.  <br/>
+/// If flags contains `FAN_MARK_FILESYSTEM`, all marks for filesystems are removed from the group.  <br/>
 /// Otherwise, all marks for directories and files are removed.  <br/>
-/// No flag other than and at most one of the flags FAN_MARK_MOUNT or FAN_MARK_FILESYSTEM can be used in conjunction with FAN_MARK_FLUSH.  mask is ignored.
+/// No flag other than and at most one of the flags `FAN_MARK_MOUNT` or `FAN_MARK_FILESYSTEM` can be used in conjunction with `FAN_MARK_FLUSH`.  mask is ignored.
 pub const FAN_MARK_FLUSH: u32 = 0x0000_0080;
 /// If pathname is a symbolic link, mark the link itself, rather than the file to which it refers. <br/>
-/// (By default,fanotify_mark() dereferences pathname if it is a symbolic link.)
+/// (By default,`fanotify_mark()` dereferences pathname if it is a symbolic link.)
 pub const FAN_MARK_DONT_FOLLOW: u32 = 0x0000_0004;
-/// If the filesystem object to be marked is not a directory, the error ENOTDIR shall be raised.
+/// If the filesystem object to be marked is not a directory, the error `ENOTDIR` shall be raised.
 pub const FAN_MARK_ONLYDIR: u32 = 0x0000_0008;
 /// Mark the inode specified by pathname.<br/>
 /// It is default way to mark.
 pub const FAN_MARK_INODE: u32 = 0x0000_0000;
 /// Mark the mount point specified by pathname.  If pathname is not itself a mount point, the mount point containing pathname will be marked.  <br/>
 /// All directories, subdirectories, and the contained files of the mount point will be monitored.  <br/>
-/// The events which require the fanotify_fd file descriptor to have been initialized with the flag FAN_REPORT_FID, such as FAN_CREATE, FAN_ATTRIB, FAN_MOVE, and FAN_DELETE_SELF, cannot be provided as a mask when flags contains FAN_MARK_MOUNT.<br/>
-/// Attempting to do so will result in the error EINVAL being returned.
+/// The events which require the `fanotify_fd` file descriptor to have been initialized with the flag `FAN_REPORT_FID`, such as `FAN_CREATE`, `FAN_ATTRIB`, `FAN_MOVE`, and `FAN_DELETE_SELF`, cannot be provided as a mask when flags contains `FAN_MARK_MOUNT`.<br/>
+/// Attempting to do so will result in the error `EINVAL` being returned.
 pub const FAN_MARK_MOUNT: u32 = 0x0000_0010;
 /// Mark the filesystem specified by pathname.  <br/>
 /// The filesystem containing pathname will be marked.  <br/>
@@ -224,110 +213,111 @@ pub const AT_REMOVEDIR: i32 = 0x200;
 pub const AT_SYMLINK_FOLLOW: i32 = 0x400;
 pub const AT_NO_AUTOMOUNT: i32 = 0x800;
 pub const AT_EMPTY_PATH: i32 = 0x1000;
+
 /// Initializes a new fanotify group and returns a file descriptor for the event queue associated with the group.<br/>
 ///
-/// The file descriptor is used in calls to fanotify_mark(2) to specify the files, directories, mounts or filesystems for which fanotify events shall be created.  
+/// The file descriptor is used in calls to `fanotify_mark(2)` to specify the files, directories, mounts or filesystems for which fanotify events shall be created.
 /// These events are received by reading from the file descriptor.  <br/>
 /// Some events are only informative, indicating that a file has been accessed.
 /// Other events can be used to determine whether another application is permitted to access a file or directory.
 /// Permission to access filesystem objects is granted by writing to the file descriptor.
 /// Multiple programs may be using the fanotify interface at the same time to monitor the same files.<br/>
 /// In the current implementation, the number of fanotify groups per user is limited to 128.  This limit cannot be overridden.
-/// Calling fanotify_init() requires the CAP_SYS_ADMIN capability.  
+/// Calling `fanotify_init()` requires the `CAP_SYS_ADMIN` capability.
 /// This constraint might be relaxed in future versions of the API. <br/>
 /// Therefore, certain additional capability checks have been implemented as indicated below.<br/>
 /// The `flags` argument contains a multi-bit field defining the notification class of the listening application and further single bit fields specifying the behavior of the file descriptor.<br/>
 /// If multiple listeners for permission events exist, the notification class is used to establish the sequence in which the listeners receive the events.<br/>
 ///
 /// Only one of the following notification classes may be specified in `flags`:<br/>
-/// * FAN_CLASS_PRE_CONTENT
-/// * FAN_CLASS_CONTENT
-/// * FAN_CLASS_NOTIF
+/// * `FAN_CLASS_PRE_CONTENT`
+/// * `FAN_CLASS_CONTENT`
+/// * `FAN_CLASS_NOTIF`
 ///
 /// Listeners with different notification classes will receive events in the order `FAN_CLASS_PRE_CONTENT`, `FAN_CLASS_CONTENT`, `FAN_CLASS_NOTIF`.
 /// The order of notification for listeners in the same notification class is undefined.<br/>
 /// The following bits can additionally be set in flags:<br/>
-/// * FAN_CLOEXEC
-/// * FAN_NONBLOCK
-/// * FAN_UNLIMITED_QUEUE
-/// * FAN_UNLIMITED_MARKS
-/// * FAN_REPORT_TID (since Linux 4.20)
-/// * FAN_REPORT_FID (since Linux 5.1)
+/// * `FAN_CLOEXEC`
+/// * `FAN_NONBLOCK`
+/// * `FAN_UNLIMITED_QUEUE`
+/// * `FAN_UNLIMITED_MARKS`
+/// * `FAN_REPORT_TID` (since Linux 4.20)
+/// * `FAN_REPORT_FID` (since Linux 5.1)
 ///
-/// The event_f_flags argument defines the file status flags that will be set on the open file descriptions that are created for fanotify events.  <br/>
-/// For details of these flags, see the description of the flags values in open(2).  event_f_flags includes a multi-bit field for the access mode.  <br/>
+/// The `event_f_flags` argument defines the file status flags that will be set on the open file descriptions that are created for fanotify events.  <br/>
+/// For details of these flags, see the description of the flags values in `open(2)`.  `event_f_flags` includes a multi-bit field for the access mode.  <br/>
 /// This field can take the following values:
-/// * O_RDONLY       
-/// * O_WRONLY
-/// * O_RDWR
+/// * `O_RDONLY`
+/// * `O_WRONLY`
+/// * `O_RDWR`
 ///     
-/// Additional bits can be set in event_f_flags.  The most useful values are:
-/// * O_LARGEFILE
-/// * O_CLOEXEC (since Linux 3.18)
+/// Additional bits can be set in `event_f_flags`.  The most useful values are:
+/// * `O_LARGEFILE`
+/// * `O_CLOEXEC` (since Linux 3.18)
 ///
 /// The following are also allowable: `O_APPEND`, `O_DSYNC`, `O_NOATIME`,`O_NONBLOCK`, and `O_SYNC`.  Specifying any other flag in `event_f_flags` yields the error `EINVAL`.
 /// # Examples
 /// ```
 /// use fanotify::low_level::*;
-/// let fd = fanotify_init(FAN_CLASS_NOTIF, O_RDONLY).unwrap();
+/// let fd = fanotify_init(FAN_CLASS_NOTIF, O_RDONLY as u32).unwrap();
 /// assert!(fd > 0)
 /// ```
 pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32, Error> {
     unsafe {
         match libc::fanotify_init(flags, event_f_flags) {
             -1 => {
-                return Err(Error::last_os_error());
+                Err(Error::last_os_error())
             }
             fd => {
-                return Ok(fd);
+                Ok(fd)
             }
-        };
-    }
+        }
+}
 }
 /// Adds, removes, or modifies an fanotify mark on a filesystem object.  
 // The caller must have read permission on the filesystem object that is to be marked.
 ///
-/// The fanotify_fd argument is a file descriptor returned by `fanotify_init()`.
+/// The `fanotify_fd` argument is a file descriptor returned by `fanotify_init()`.
 ///
 /// `flags` is a bit mask describing the modification to perform.  It must include exactly one of the following values:
-/// * FAN_MARK_ADD
-/// * FAN_MARK_REMOVE
-/// * FAN_MARK_FLUSH
+/// * `FAN_MARK_ADD`
+/// * `FAN_MARK_REMOVE`
+/// * `FAN_MARK_FLUSH`
 ///
 /// If none of the values above is specified, or more than one is specified, the call fails with the error `EINVAL`.
 ///
-/// In addition, zero or more of the following values may be ORed into `flags`:
-/// * FAN_MARK_DONT_FOLLOW
-/// * FAN_MARK_ONLYDIR
-/// * FAN_MARK_MOUNT
-/// * FAN_MARK_FILESYSTEM(since Linux 4.20)
-/// * FAN_MARK_IGNORED_MASK
-/// * FAN_MARK_IGNORED_SURV_MODIFY
+/// In addition, zero or more of the following values may be `ORed` into `flags`:
+/// * `FAN_MARK_DONT_FOLLOW`
+/// * `FAN_MARK_ONLYDIR`
+/// * `FAN_MARK_MOUNT`
+/// * `FAN_MARK_FILESYSTEM` (since Linux 4.20)
+/// * `FAN_MARK_IGNORED_MASK`
+/// * `FAN_MARK_IGNORED_SURV_MODIFY`
 ///
 ///
 /// `mask` defines which events shall be listened for (or which shall be ignored).  It is a bit mask composed of the following values:
-/// * FAN_ACCESS
-/// * FAN_MODIFY
-/// * FAN_CLOSE_WRITE
-/// * FAN_CLOSE_NOWRITE
-/// * FAN_OPEN
-/// * FAN_OPEN_EXEC (since Linux 5.0)
-/// * FAN_ATTRIB (since Linux 5.1)
-/// * FAN_CREATE (since Linux 5.1)
-/// * FAN_DELETE (since Linux 5.1)
-/// * FAN_DELETE_SELF (since Linux 5.1)
-/// * FAN_MOVED_FROM (since Linux 5.1)
-/// * FAN_MOVED_TO (since Linux 5.1)
-/// * FAN_MOVE_SELF (since Linux 5.1)
-/// * FAN_OPEN_PERM
-/// * FAN_OPEN_EXEC_PERM (since Linux 5.0)
-/// * FAN_ACCESS_PERM
-/// * FAN_ONDIR
-/// * FAN_EVENT_ON_CHILD
+/// * `FAN_ACCESS`
+/// * `FAN_MODIFY`
+/// * `FAN_CLOSE_WRITE`
+/// * `FAN_CLOSE_NOWRITE`
+/// * `FAN_OPEN`
+/// * `FAN_OPEN_EXEC` (since Linux 5.0)
+/// * `FAN_ATTRIB` (since Linux 5.1)
+/// * `FAN_CREATE` (since Linux 5.1)
+/// * `FAN_DELETE` (since Linux 5.1)
+/// * `FAN_DELETE_SELF` (since Linux 5.1)
+/// * `FAN_MOVED_FROM` (since Linux 5.1)
+/// * `FAN_MOVED_TO` (since Linux 5.1)
+/// * `FAN_MOVE_SELF` (since Linux 5.1)
+/// * `FAN_OPEN_PERM`
+/// * `FAN_OPEN_EXEC_PERM` (since Linux 5.0)
+/// * `FAN_ACCESS_PERM`
+/// * `FAN_ONDIR`
+/// * `FAN_EVENT_ON_CHILD`
 ///
 /// The following composed values are defined:
-/// * FAN_CLOSE
-/// * FAN_MOVE(since Linux 5.1)
+/// * `FAN_CLOSE`
+/// * `FAN_MOVE` (since Linux 5.1)
 ///
 ///
 /// The filesystem object to be marked is determined by the file descriptor `dirfd` and the pathname specified in pathname:
@@ -339,7 +329,7 @@ pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32, Error> {
 /// # Examples
 /// ```
 /// use fanotify::low_level::*;
-/// let fd = fanotify_init(FAN_CLASS_NOTIF, O_RDONLY).unwrap();
+/// let fd = fanotify_init(FAN_CLASS_NOTIF, O_RDONLY as u32).unwrap();
 /// fanotify_mark(fd, FAN_MARK_ADD, FAN_OPEN | FAN_CLOSE, AT_FDCWD, "./").unwrap();
 /// ```
 pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
@@ -350,43 +340,45 @@ pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
     path: &P,
 ) -> Result<(), Error> {
     unsafe {
+        let mut raw_path = path.as_os_str().as_bytes().to_vec();
+        raw_path.push(0u8); // data must be null terminated
+
+        //make sure path is null terminated
         match libc::fanotify_mark(
             fanotify_fd,
             flags,
             mask,
             dirfd,
-            path.as_os_str()
-                .as_bytes()
-                .iter()
-                .map(|p| *p as i8)
-                .collect::<Vec<i8>>()
-                .as_ptr(),
+            raw_path.as_ptr().cast(),
         ) {
             0 => {
-                return Ok(());
+                Ok(())
             }
             _ => {
-                return Err(Error::last_os_error());
+                Err(Error::last_os_error())
             }
         }
     }
 }
-pub fn fanotify_read(fanotify_fd: i32) -> Vec<fanotify_event_metadata> {
+
+pub fn fanotify_read(fanotify_fd: i32) -> Vec<FanotifyEventMetadata> {
     let mut vec = Vec::new();
+    let mut buffer = Box::new([0u8;FAN_EVENT_METADATA_LEN * 200]);
     unsafe {
-        let buffer = libc::malloc(*FAN_EVENT_METADATA_LEN * 200);
-        let sizeof = libc::read(fanotify_fd, buffer, *FAN_EVENT_METADATA_LEN * 200);
+        // Allocate a buffer to store up to 200 events
+        
+        let sizeof = libc::read(fanotify_fd, buffer.as_mut_ptr() as _, FAN_EVENT_METADATA_LEN * 200);
         if sizeof != libc::EAGAIN as isize && sizeof > 0 {
             let src = slice::from_raw_parts(
-                buffer as *mut fanotify_event_metadata,
-                sizeof as usize / *FAN_EVENT_METADATA_LEN,
+                buffer.as_ptr().cast::<FanotifyEventMetadata>(),
+                sizeof as usize / FAN_EVENT_METADATA_LEN,
             );
             vec.extend_from_slice(src);
         }
-        libc::free(buffer);
     }
     vec
 }
+
 pub fn close_fd(fd: i32) {
     unsafe {
         libc::close(fd);
