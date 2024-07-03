@@ -1,8 +1,5 @@
 use crate::low_level::{
-    close_fd, fanotify_init, fanotify_mark, fanotify_read, FanotifyEventMetadata, AT_FDCWD,
-    FAN_ALLOW, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLASS_PRE_CONTENT, FAN_CLOEXEC, FAN_DENY,
-    FAN_MARK_ADD, FAN_MARK_FLUSH, FAN_MARK_MOUNT, FAN_MARK_REMOVE, FAN_NONBLOCK, O_CLOEXEC,
-    O_RDONLY,
+    close_fd, fanotify_init, fanotify_mark, fanotify_read, FanAdditionalRecords, FanotifyEventMetadata, AT_FDCWD, FAN_ALLOW, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLASS_PRE_CONTENT, FAN_CLOEXEC, FAN_DENY, FAN_MARK_ADD, FAN_MARK_FLUSH, FAN_MARK_MOUNT, FAN_MARK_REMOVE, FAN_NONBLOCK, O_CLOEXEC, O_RDONLY
 };
 use crate::FanotifyPath;
 use enum_iterator::{all, Sequence};
@@ -118,6 +115,7 @@ pub struct Event {
     pub fd: i32,
     pub path: String,
     pub events: Vec<FanEvent>,
+    pub additional_records: Vec<FanAdditionalRecords>,
     pub pid: i32,
 }
 
@@ -128,6 +126,7 @@ impl From<FanotifyEventMetadata> for Event {
             fd: metadata.fd,
             path: path.to_str().unwrap().to_string(),
             events: events_from_mask(metadata.mask),
+            additional_records: Vec::new(),
             pid: metadata.pid,
         }
     }
@@ -197,13 +196,14 @@ impl Fanotify {
     pub fn read_event(&self) -> Vec<Event> {
         let mut result = Vec::new();
         let events = fanotify_read(self.fd);
-        for metadata in events {
+        for (metadata, additional_records) in events {
             let path = read_link(format!("/proc/self/fd/{}", metadata.fd)).unwrap_or_default();
             let path = path.to_str().unwrap();
             result.push(Event {
                 fd: metadata.fd,
                 path: String::from(path),
                 events: events_from_mask(metadata.mask),
+                additional_records,
                 pid: metadata.pid,
             });
             close_fd(metadata.fd);
