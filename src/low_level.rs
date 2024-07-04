@@ -502,12 +502,9 @@ pub fn fanotify_read(fanotify_fd: i32) -> Vec<(FanotifyEventMetadata, Vec<FanAdd
 
     let mut cursor = &read_buffer[..read_len as usize];
     while let Ok(event_metadata) = FanotifyEventMetadata::from_slice(cursor) {
-        println!("event metadata: {:?}, should have read: {:?}", event_metadata, &cursor[..FAN_EVENT_METADATA_LEN]);
         let mut extra_records = Vec::new();
         if event_metadata.event_len as usize > FAN_EVENT_METADATA_LEN {
-            println!("event_len: {}, metadata_size: {}", event_metadata.event_len, FAN_EVENT_METADATA_LEN);
             // we have optional events, allocate a new vector to hold the additional info
-             
              let mut inner_cursor = &cursor[FAN_EVENT_METADATA_LEN..event_metadata.event_len as usize];
             while inner_cursor.len() >= size_of::<FanotifyEventInfoHeader>() {
                 // TODO: handle the path CStr sent after the info record for a `FAN_EVENT_INFO_TYPE_DFID_NAME`
