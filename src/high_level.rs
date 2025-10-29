@@ -113,7 +113,7 @@ impl From<FanotifyResponse> for u32 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Event {
     pub fd: i32,
     pub path: String,
