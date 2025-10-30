@@ -113,12 +113,35 @@ impl From<FanotifyResponse> for u32 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Event {
     pub fd: i32,
     pub path: String,
     pub events: Vec<FanEvent>,
     pub pid: i32,
+}
+
+impl Event {
+    /// Tries to duplicate the event, including duplicating the file descriptor
+    /// so new instances can keep it open after the original calls `Drop::drop`.
+    pub fn try_clone(&self) -> Result<Self, std::io::Error> {
+        let new_fd = unsafe { libc::dup(self.fd) };
+        if new_fd < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        Ok(Self {
+            fd: new_fd,
+            path: self.path.clone(),
+            events: self.events.clone(),
+            pid: self.pid,
+        })
+    }
+}
+
+impl Drop for Event {
+    fn drop(&mut self) {
+        close_fd(self.fd);
+    }
 }
 
 impl From<FanotifyEventMetadata> for Event {
@@ -206,7 +229,6 @@ impl Fanotify {
                 events: events_from_mask(metadata.mask),
                 pid: metadata.pid,
             });
-            close_fd(metadata.fd);
         }
         result
     }
