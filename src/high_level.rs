@@ -217,9 +217,9 @@ impl Fanotify {
         Ok(())
     }
 
-    pub fn read_event(&self) -> Vec<Event> {
+    pub fn read_event(&self) -> std::io::Result<Vec<Event>> {
         let mut result = Vec::new();
-        let events = fanotify_read(self.fd);
+        let events = fanotify_read(self.fd)?;
         for metadata in events {
             let path = read_link(format!("/proc/self/fd/{}", metadata.fd)).unwrap_or_default();
             let path = path.to_str().unwrap();
@@ -230,7 +230,7 @@ impl Fanotify {
                 pid: metadata.pid,
             });
         }
-        result
+        Ok(result)
     }
 
     pub fn send_response<T: Into<i32>>(&self, fd: T, resp: FanotifyResponse) {

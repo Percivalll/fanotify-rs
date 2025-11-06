@@ -2,7 +2,7 @@
 name = "fanotify-rs"
 version = "0.3.2"
 authors = ["zhanglei <mrzhang.lei@outlook.com>", "n01e0 <noleo@vanillabeans.mobi>", "Philip Woolford <woolford.philip@gmail.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "The high-level/low-level implementation of Linux Fanotify."
 repository = "https://github.com/ZhangLei-cn/fanotify-rs"
@@ -15,4 +15,4 @@ doc = true
 
 [dependencies]
 libc = "0.2"
-enum-iterator = "1.5"
+enum-iterator = "2.3.0"

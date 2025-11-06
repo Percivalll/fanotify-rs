@@ -1,13 +1,16 @@
 use crate::FanotifyPath;
-use libc::{__s32, __u16, __u32, __u64, __u8};
-use std::io::Error;
+use libc::{__s32, __u8, __u16, __u32, __u64};
+use std::io::{Error, ErrorKind};
 use std::mem;
 use std::os::unix::ffi::OsStrExt;
 use std::slice;
 
 #[doc(hidden)]
 /// Re-export relevant libc constants
-pub use libc::{O_RDONLY, O_WRONLY, O_RDWR, O_LARGEFILE, O_CLOEXEC, O_APPEND, O_DSYNC, O_NOATIME, O_NONBLOCK, O_SYNC};
+pub use libc::{
+    O_APPEND, O_CLOEXEC, O_DSYNC, O_LARGEFILE, O_NOATIME, O_NONBLOCK, O_RDONLY, O_RDWR, O_SYNC,
+    O_WRONLY,
+};
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -265,14 +268,10 @@ pub const AT_EMPTY_PATH: i32 = 0x1000;
 pub fn fanotify_init(flags: u32, event_f_flags: u32) -> Result<i32, Error> {
     unsafe {
         match libc::fanotify_init(flags, event_f_flags) {
-            -1 => {
-                Err(Error::last_os_error())
-            }
-            fd => {
-                Ok(fd)
-            }
+            -1 => Err(Error::last_os_error()),
+            fd => Ok(fd),
         }
-}
+    }
 }
 /// Adds, removes, or modifies an fanotify mark on a filesystem object.  
 // The caller must have read permission on the filesystem object that is to be marked.
@@ -344,31 +343,34 @@ pub fn fanotify_mark<P: ?Sized + FanotifyPath>(
         raw_path.push(0u8); // data must be null terminated
 
         //make sure path is null terminated
-        match libc::fanotify_mark(
-            fanotify_fd,
-            flags,
-            mask,
-            dirfd,
-            raw_path.as_ptr().cast(),
-        ) {
-            0 => {
-                Ok(())
-            }
-            _ => {
-                Err(Error::last_os_error())
-            }
+        match libc::fanotify_mark(fanotify_fd, flags, mask, dirfd, raw_path.as_ptr().cast()) {
+            0 => Ok(()),
+            _ => Err(Error::last_os_error()),
         }
     }
 }
 
-pub fn fanotify_read(fanotify_fd: i32) -> Vec<FanotifyEventMetadata> {
+pub fn fanotify_read(fanotify_fd: i32) -> std::io::Result<Vec<FanotifyEventMetadata>> {
     let mut vec = Vec::new();
-    let mut buffer = Box::new([0u8;FAN_EVENT_METADATA_LEN * 200]);
+    let mut buffer = Box::new([0u8; FAN_EVENT_METADATA_LEN * 200]);
     unsafe {
         // Allocate a buffer to store up to 200 events
-        
-        let sizeof = libc::read(fanotify_fd, buffer.as_mut_ptr() as _, FAN_EVENT_METADATA_LEN * 200);
-        if sizeof != libc::EAGAIN as isize && sizeof > 0 {
+
+        let sizeof = libc::read(
+            fanotify_fd,
+            buffer.as_mut_ptr() as _,
+            FAN_EVENT_METADATA_LEN * 200,
+        );
+
+        // Get the Error code fromt the OS, as we don't want to bubble up a `WouldBlock` in our API
+        if sizeof == -1
+            && let errno = std::io::Error::last_os_error()
+            && !matches!(errno.kind(), ErrorKind::WouldBlock)
+        {
+            return Err(errno);
+        }
+
+        if sizeof > 0 {
             let src = slice::from_raw_parts(
                 buffer.as_ptr().cast::<FanotifyEventMetadata>(),
                 sizeof as usize / FAN_EVENT_METADATA_LEN,
@@ -376,7 +378,7 @@ pub fn fanotify_read(fanotify_fd: i32) -> Vec<FanotifyEventMetadata> {
             vec.extend_from_slice(src);
         }
     }
-    vec
+    Ok(vec)
 }
 
 pub fn close_fd(fd: i32) {
