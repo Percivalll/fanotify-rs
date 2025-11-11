@@ -1,6 +1,6 @@
 [package]
 name = "fanotify-rs"
-version = "0.3.2"
+version = "0.4.0"
 authors = ["zhanglei <mrzhang.lei@outlook.com>", "n01e0 <noleo@vanillabeans.mobi>", "Philip Woolford <woolford.philip@gmail.com>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -13,6 +13,11 @@ name = "fanotify"
 path = "src/lib.rs"
 doc = true
 
+[features]
+default = ["high-level"]
+high-level = ["bitflags"]
+
 [dependencies]
 libc = "0.2"
-enum-iterator = "2.3.0"
+enum-iterator = "2.3"
+bitflags = {version = "2.10", optional = true}

@@ -1,21 +1,11 @@
-use crate::low_level::{
-    close_fd, fanotify_init, fanotify_mark, fanotify_read, FanotifyEventMetadata, AT_FDCWD,
-    FAN_ALLOW, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLASS_PRE_CONTENT, FAN_CLOEXEC, FAN_DENY,
-    FAN_MARK_ADD, FAN_MARK_FLUSH, FAN_MARK_MOUNT, FAN_MARK_REMOVE, FAN_NONBLOCK, O_CLOEXEC,
-    O_RDONLY,
-};
 use crate::FanotifyPath;
-use enum_iterator::{all, Sequence};
+use bitflags::bitflags;
+use enum_iterator::{Sequence, all};
 use std::fs::read_link;
 use std::io::Error;
 use std::os::fd::{AsFd, BorrowedFd};
 
-pub use crate::low_level::{
-    FAN_ACCESS, FAN_ACCESS_PERM, FAN_ATTRIB, FAN_CLOSE, FAN_CLOSE_NOWRITE, FAN_CLOSE_WRITE,
-    FAN_CREATE, FAN_DELETE, FAN_DELETE_SELF, FAN_EVENT_ON_CHILD, FAN_MODIFY, FAN_MOVE,
-    FAN_MOVED_FROM, FAN_MOVED_TO, FAN_MOVE_SELF, FAN_ONDIR, FAN_OPEN, FAN_OPEN_EXEC,
-    FAN_OPEN_EXEC_PERM, FAN_OPEN_PERM,
-};
+use crate::low_level::*;
 
 pub struct Fanotify {
     fd: i32,
@@ -38,6 +28,61 @@ where
 {
     fn from(raw: T) -> Fanotify {
         Fanotify { fd: raw.into() }
+    }
+}
+
+bitflags! {
+    pub struct MarkMode: u64 {
+        const Access = FAN_ACCESS;
+        const Modify = FAN_MODIFY;
+        const Attributes = FAN_ATTRIB;
+        const CloseWrite = FAN_CLOSE_WRITE;
+        const CloseNoWrite = FAN_CLOSE_NOWRITE;
+        const Open = FAN_OPEN;
+        const MovedFrom = FAN_MOVED_FROM;
+        const MovedTo = FAN_MOVED_TO;
+        const Moved = FAN_MOVE;
+        const Create = FAN_CREATE;
+        const Delete = FAN_DELETE;
+        const DeleteSelf = FAN_DELETE_SELF;
+        const MoveSelf = FAN_MOVE_SELF;
+        const OpenExec = FAN_OPEN_EXEC;
+        const OpenPerm = FAN_OPEN_PERM;
+        const OpenExecPerm = FAN_OPEN_EXEC_PERM;
+        const OnDirectory = FAN_ONDIR;
+        const EventOnChild = FAN_EVENT_ON_CHILD;
+        const Close = FAN_CLOSE;
+    }
+}
+
+bitflags! {
+    pub struct Flags: u32 {
+        const CloseOnExec = FAN_CLOEXEC;
+        const NonBlocking = FAN_NONBLOCK;
+        const NotificationClass = FAN_CLASS_NOTIF;
+        const ContentClass = FAN_CLASS_CONTENT;
+        const PreContentClass = FAN_CLASS_PRE_CONTENT;
+        const UnlimitedEventQueue = FAN_UNLIMITED_QUEUE;
+        const UnlimitedMarks = FAN_UNLIMITED_MARKS;
+        const Audit = FAN_ENABLE_AUDIT;
+        const ReportThreadID = FAN_REPORT_TID;
+        const ReportDirectoryID = FAN_REPORT_DIR_FID;
+        const ReportName = FAN_REPORT_NAME;
+    }
+}
+
+bitflags! {
+    pub struct EventFlags: u32 {
+        const CloseOnExec = FAN_CLOEXEC;
+        const ReadOnly = O_RDONLY.cast_unsigned();
+        const ReadWrite = O_RDWR.cast_unsigned();
+        const WriteOnly = O_WRONLY.cast_unsigned();
+        const LargeFile = O_LARGEFILE.cast_unsigned();
+        const Append = O_APPEND.cast_unsigned();
+        const MetadataSync = O_DSYNC.cast_unsigned();
+        const NoAccessTime = O_NOATIME.cast_unsigned();
+        const NonBlock = O_NONBLOCK.cast_unsigned();
+        const Sync = O_SYNC.cast_unsigned();
     }
 }
 
@@ -119,6 +164,7 @@ pub struct Event {
     pub path: String,
     pub events: Vec<FanEvent>,
     pub pid: i32,
+    pub additional_records: Vec<FanAdditionalRecords>,
 }
 
 impl Event {
@@ -134,6 +180,7 @@ impl Event {
             path: self.path.clone(),
             events: self.events.clone(),
             pid: self.pid,
+            additional_records: self.additional_records.clone(),
         })
     }
 }
@@ -152,6 +199,7 @@ impl From<FanotifyEventMetadata> for Event {
             path: path.to_str().unwrap().to_string(),
             events: events_from_mask(metadata.mask),
             pid: metadata.pid,
+            additional_records: vec![],
         }
     }
 }
@@ -193,34 +241,67 @@ impl Fanotify {
         })
     }
 
-    pub fn add_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
-        fanotify_mark(self.fd, FAN_MARK_ADD, mode, AT_FDCWD, path)?;
+    pub fn add_path<P: ?Sized + FanotifyPath>(
+        &self,
+        mode: MarkMode,
+        path: &P,
+    ) -> Result<(), Error> {
+        fanotify_mark(self.fd, FAN_MARK_ADD, mode.bits(), AT_FDCWD, path)?;
         Ok(())
     }
 
     pub fn add_mountpoint<P: ?Sized + FanotifyPath>(
         &self,
-        mode: u64,
+        mode: MarkMode,
         path: &P,
     ) -> Result<(), Error> {
-        fanotify_mark(self.fd, FAN_MARK_ADD | FAN_MARK_MOUNT, mode, AT_FDCWD, path)?;
+        fanotify_mark(
+            self.fd,
+            FAN_MARK_ADD | FAN_MARK_MOUNT,
+            mode.bits(),
+            AT_FDCWD,
+            path,
+        )?;
         Ok(())
     }
 
-    pub fn remove_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
-        fanotify_mark(self.fd, FAN_MARK_REMOVE, mode, AT_FDCWD, path)?;
+    pub fn add_filesystem<P: ?Sized + FanotifyPath>(
+        &self,
+        mode: MarkMode,
+        path: &P,
+    ) -> Result<(), Error> {
+        fanotify_mark(
+            self.fd,
+            FAN_MARK_ADD | FAN_MARK_FILESYSTEM,
+            mode.bits(),
+            AT_FDCWD,
+            path,
+        )?;
         Ok(())
     }
 
-    pub fn flush_path<P: ?Sized + FanotifyPath>(&self, mode: u64, path: &P) -> Result<(), Error> {
-        fanotify_mark(self.fd, FAN_MARK_FLUSH, mode, AT_FDCWD, path)?;
+    pub fn remove_path<P: ?Sized + FanotifyPath>(
+        &self,
+        mode: MarkMode,
+        path: &P,
+    ) -> Result<(), Error> {
+        fanotify_mark(self.fd, FAN_MARK_REMOVE, mode.bits(), AT_FDCWD, path)?;
+        Ok(())
+    }
+
+    pub fn flush_path<P: ?Sized + FanotifyPath>(
+        &self,
+        mode: MarkMode,
+        path: &P,
+    ) -> Result<(), Error> {
+        fanotify_mark(self.fd, FAN_MARK_FLUSH, mode.bits(), AT_FDCWD, path)?;
         Ok(())
     }
 
     pub fn read_event(&self) -> std::io::Result<Vec<Event>> {
         let mut result = Vec::new();
         let events = fanotify_read(self.fd)?;
-        for metadata in events {
+        for (metadata, additional_records) in events {
             let path = read_link(format!("/proc/self/fd/{}", metadata.fd)).unwrap_or_default();
             let path = path.to_str().unwrap();
             result.push(Event {
@@ -228,6 +309,7 @@ impl Fanotify {
                 path: String::from(path),
                 events: events_from_mask(metadata.mask),
                 pid: metadata.pid,
+                additional_records,
             });
         }
         Ok(result)
@@ -292,16 +374,16 @@ impl FanotifyBuilder {
         Self { class, ..self }
     }
 
-    pub fn with_flags(self, flags: u32) -> Self {
+    pub fn with_flags(self, flags: Flags) -> Self {
         Self {
-            flags: FAN_CLOEXEC | flags,
+            flags: FAN_CLOEXEC | flags.bits(),
             ..self
         }
     }
 
-    pub fn with_event_flags(self, event_flags: u32) -> Self {
+    pub fn with_event_flags(self, event_flags: EventFlags) -> Self {
         Self {
-            event_flags,
+            event_flags: event_flags.bits(),
             ..self
         }
     }
@@ -310,5 +392,11 @@ impl FanotifyBuilder {
         Ok(Fanotify {
             fd: fanotify_init(self.flags | self.class.to_fan_class(), self.event_flags)?,
         })
+    }
+}
+
+impl Default for FanotifyBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
