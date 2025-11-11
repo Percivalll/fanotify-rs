@@ -2,25 +2,24 @@ use fanotify::high_level::*;
 use nix::poll::{poll, PollFd, PollFlags};
 use std::os::fd::AsFd;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = clap::Command::new("with_poll")
         .arg(clap::Arg::new("path").index(1).required(true))
         .get_matches();
 
-    let fd = Fanotify::new_with_nonblocking(FanotifyMode::CONTENT);
+    let fd = Fanotify::new_nonblocking(FanotifyMode::CONTENT)?;
     fd.add_mountpoint(
-        FAN_OPEN_EXEC | FAN_CLOSE_WRITE,
+        MarkMode::OpenExec | MarkMode::CloseWrite,
         app.get_one::<String>("path")
             .expect("We can unwrap here as clap enforces the existence of `path`"),
-    )
-    .unwrap();
+    )?;
 
     let fd_handle = fd.as_fd();
-    let mut fds = [PollFd::new(&fd_handle, PollFlags::POLLIN)];
+    let mut fds = [PollFd::new(fd_handle, PollFlags::POLLIN)];
     loop {
-        let poll_num = poll(&mut fds, -1).unwrap();
+        let poll_num = poll(&mut fds, None::<u8>).unwrap();
         if poll_num > 0 {
-            for event in fd.read_event() {
+            for event in fd.read_event()? {
                 println!("{:#?}", event);
                 fd.send_response(event.fd, FanotifyResponse::Allow);
             }
@@ -29,4 +28,6 @@ fn main() {
             break;
         }
     }
+
+    Ok(())
 }
