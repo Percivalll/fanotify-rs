@@ -14,8 +14,8 @@ $ sudo ./run.sh
    ```bash
    sudo ./run.sh
    ```
-2. Navigate to new temporary folder
+2. Navigate to a new temporary folder
     ```bash
     `pwd`/tmp
     ```
-3. Create or change files in `tmp` folder to see output on console running `run.sh`
+3. Create or change the files in `tmp` folder to see the output on the console running `run.sh`

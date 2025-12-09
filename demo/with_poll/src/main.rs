@@ -11,7 +11,7 @@ fn main() {
     fd.add_mountpoint(
         FAN_OPEN_EXEC | FAN_CLOSE_WRITE,
         app.get_one::<String>("path")
-            .expect("We can unwrap here as clap enforces the existence of `path`"),
+            .expect("We can unwrap here, as clap enforces the existence of `path`"),
     )
     .unwrap();
 
