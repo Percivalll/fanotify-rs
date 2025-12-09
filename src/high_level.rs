@@ -21,8 +21,8 @@ pub struct Fanotify {
     fd: i32,
 }
 
-// SAFETY: the `fanotify_*` functions are thread safe, and file descriptors are safe for
-// sharing betweent threads if they are used in threadsafe functions
+// SAFETY: the `fanotify_*` functions are thread safe, and file descriptors are safe to
+// share between threads if they are used in threadsafe functions
 unsafe impl Send for Fanotify {}
 unsafe impl Sync for Fanotify {}
 
